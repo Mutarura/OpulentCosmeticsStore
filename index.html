@@ -8,6 +8,31 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      // Critical Error Handler - Runs before any module loading
+      window.addEventListener('error', function(event) {
+        var errorMsg = document.createElement('div');
+        errorMsg.style.position = 'fixed';
+        errorMsg.style.top = '0';
+        errorMsg.style.left = '0';
+        errorMsg.style.width = '100%';
+        errorMsg.style.height = '100%';
+        errorMsg.style.backgroundColor = '#fff0f0';
+        errorMsg.style.color = '#cc0000';
+        errorMsg.style.padding = '20px';
+        errorMsg.style.zIndex = '999999';
+        errorMsg.style.fontFamily = 'monospace';
+        errorMsg.style.whiteSpace = 'pre-wrap';
+        errorMsg.style.overflow = 'auto';
+        errorMsg.innerHTML = '<h1>Application Error</h1>' +
+          '<h3>' + event.message + '</h3>' +
+          '<p><strong>File:</strong> ' + event.filename + '</p>' +
+          '<p><strong>Line:</strong> ' + event.lineno + '</p>' + 
+          '<hr/>' +
+          '<p>If this error mentions "VITE_SUPABASE_URL", you need to add your Environment Variables in Vercel.</p>';
+        document.body.appendChild(errorMsg);
+      });
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
