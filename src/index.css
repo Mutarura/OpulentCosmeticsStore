@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@400;600;700&display=swap');
+
+@theme {
+  --color-primary: #F0E6E6;
+  --color-secondary: #D8B4B4;
+  --color-accent: #5D5D5D;
+  --color-accent-light: #8C8C8C;
+  
+  --color-theme-pink: #EC4899;
+  --color-theme-pink-light: #FCE7F3;
+  --color-theme-teal: #14B8A6;
+  --color-theme-teal-light: #CCFBF1;
+
+  --font-sans: 'Inter', sans-serif;
+  --font-serif: 'Playfair Display', serif;
+  
+  --animate-scroll: scroll 30s linear infinite;
+
+  @keyframes scroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+}
+
+
+@layer base {
+  body {
+    @apply font-sans text-accent bg-white;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-serif;
+  }
+}
