@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { supabaseAdmin } from '../_lib/supabaseAdmin';
-import { sendEmail } from '../_lib/email';
-import { getPesapalToken, getTransactionStatus } from '../_lib/pesapal';
+import { supabaseAdmin } from '../_lib/supabaseAdmin.js';
+import { sendEmail } from '../_lib/email.js';
+import { getPesapalToken, getTransactionStatus } from '../_lib/pesapal.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Pesapal IPN can be GET or POST. We'll handle both or checking query params.

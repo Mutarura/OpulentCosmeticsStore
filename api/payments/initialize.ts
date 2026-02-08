@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { supabaseAdmin } from '../_lib/supabaseAdmin';
-import { getPesapalToken, submitOrderRequest } from '../_lib/pesapal';
+import { supabaseAdmin } from '../_lib/supabaseAdmin.js';
+import { getPesapalToken, submitOrderRequest } from '../_lib/pesapal.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
