@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingCart, Star, Bell } from 'lucide-react';
+import { ShoppingCart, Star, Bell, Check } from 'lucide-react';
 import type { Product } from '../data/products';
 import { useCart } from '../context/CartContext';
 import { useCategory } from '../context/CategoryContext';
@@ -12,12 +12,28 @@ interface ProductCardProps {
 export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { addToCart } = useCart();
   const { category } = useCategory();
+  const [isAdded, setIsAdded] = React.useState(false);
   
   const isOutOfStock = product.tag === 'Out of Stock';
   
   const activeBtnColor = category === 'her' 
     ? 'bg-theme-pink hover:bg-pink-600' 
     : 'bg-theme-teal hover:bg-teal-700';
+
+  const handleAddToCart = () => {
+    if (isOutOfStock) return;
+    
+    addToCart(product);
+    
+    // Haptic feedback
+    if (navigator.vibrate) {
+      navigator.vibrate(50);
+    }
+    
+    // Visual feedback
+    setIsAdded(true);
+    setTimeout(() => setIsAdded(false), 2000);
+  };
 
   return (
     <div className="group bg-white rounded-xl overflow-hidden border border-gray-100 hover:shadow-xl transition-all duration-300 flex flex-col h-full">
@@ -64,18 +80,25 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         </div>
 
         <button 
-          onClick={() => !isOutOfStock && addToCart(product)}
-          disabled={isOutOfStock}
+          onClick={handleAddToCart}
+          disabled={isOutOfStock || isAdded}
           className={`w-full mt-4 py-2.5 text-white font-medium text-sm rounded-lg shadow-sm transition-all duration-300 flex items-center justify-center gap-2 transform active:scale-95 ${
             isOutOfStock 
               ? 'bg-gray-400 cursor-not-allowed' 
-              : `${activeBtnColor} shadow-${category === 'her' ? 'pink' : 'teal'}/20`
+              : isAdded 
+                ? 'bg-green-500 hover:bg-green-600'
+                : `${activeBtnColor} shadow-${category === 'her' ? 'pink' : 'teal'}/20`
           }`}
         >
           {isOutOfStock ? (
             <>
               <Bell className="w-4 h-4" />
               <span>Notify Me</span>
+            </>
+          ) : isAdded ? (
+            <>
+              <Check className="w-4 h-4" />
+              <span>Added</span>
             </>
           ) : (
             <>

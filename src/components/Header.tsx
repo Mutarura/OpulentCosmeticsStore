@@ -66,6 +66,7 @@ export const Header: React.FC = () => {
   const searchRef = useRef<HTMLDivElement>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [productsError, setProductsError] = useState<string | null>(null);
+  const [isBumped, setIsBumped] = useState(false);
 
   // Close search results when clicking outside
   useEffect(() => {
@@ -80,6 +81,15 @@ export const Header: React.FC = () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+
+  // Cart animation
+  useEffect(() => {
+    if (totalItems === 0) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsBumped(true);
+    const timer = setTimeout(() => setIsBumped(false), 300);
+    return () => clearTimeout(timer);
+  }, [totalItems]);
 
   useEffect(() => {
     let isMounted = true;
@@ -148,7 +158,9 @@ export const Header: React.FC = () => {
   const hideCategoryToggle =
     location.pathname.startsWith('/admin') ||
     location.pathname.startsWith('/product') ||
-    location.pathname.startsWith('/contact');
+    location.pathname.startsWith('/contact') ||
+    location.pathname.startsWith('/cart') ||
+    location.pathname.startsWith('/checkout');
 
   return (
     <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md shadow-sm border-b border-gray-100 transition-colors duration-300">
@@ -269,9 +281,9 @@ export const Header: React.FC = () => {
             </button>
             
             <Link to="/cart" className={`relative text-accent hover:${activeColor} transition-colors group`}>
-              <ShoppingBag className="w-6 h-6" />
+              <ShoppingBag className={`w-6 h-6 transition-transform duration-300 ${isBumped ? 'scale-125 text-amber-500' : ''}`} />
               {totalItems > 0 && (
-                <span className={`absolute -top-2 -right-2 ${activeBg} text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full shadow-sm group-hover:scale-110 transition-transform`}>
+                <span className={`absolute -top-2 -right-2 ${activeBg} text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full shadow-sm ${isBumped ? 'animate-bounce' : ''} group-hover:scale-110 transition-transform`}>
                   {totalItems}
                 </span>
               )}

@@ -7,6 +7,8 @@ export interface Product {
   image: string;
   rating: number;
   tag?: 'New' | 'Bestseller' | 'Out of Stock';
+  subcategory?: string;
+  is_bundle?: boolean;
 }
 
 export const products: Product[] = [

@@ -33,13 +33,13 @@ export const getPesapalToken = async () => {
     } else {
       throw new Error(response.data.message || 'Failed to authenticate with Pesapal');
     }
-  } catch (error: any) {
+  } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
     console.error('Pesapal Auth Error:', error.response?.data || error.message);
     throw new Error('Pesapal authentication failed');
   }
 };
 
-export const registerIPN = async (token: string) => {
+export const registerIPN = async (_token: string) => { // eslint-disable-line @typescript-eslint/no-unused-vars
     // Ideally, IPN registration happens once, or we use a pre-registered ID from env
     // But if we needed to register dynamically:
     /*
@@ -69,13 +69,13 @@ export const getTransactionStatus = async (orderTrackingId: string, token: strin
             }
         );
         return response.data;
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         console.error('Pesapal Status Check Error:', error.response?.data || error.message);
         throw error;
     }
 }
 
-export const submitOrderRequest = async (token: string, orderDetails: any) => {
+export const submitOrderRequest = async (token: string, orderDetails: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
     try {
         const response = await axios.post(
             `${BASE_URL}/api/Transactions/SubmitOrderRequest`,
@@ -88,7 +88,7 @@ export const submitOrderRequest = async (token: string, orderDetails: any) => {
             }
         );
         return response.data;
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         console.error('Pesapal Submit Order Error:', error.response?.data || error.message);
         throw error;
     }

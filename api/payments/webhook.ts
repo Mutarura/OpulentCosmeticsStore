@@ -149,7 +149,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         status: 200
     });
 
-  } catch (error: any) {
+  } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
     console.error('Webhook processing error:', error);
     return res.status(500).json({ error: 'Internal Server Error' });
   }

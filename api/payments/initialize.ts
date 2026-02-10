@@ -161,7 +161,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         throw new Error('Failed to get redirect URL from Pesapal');
     }
 
-  } catch (error: any) {
+  } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
     console.error('Payment initialization error:', error);
     return res.status(500).json({ error: error.message || 'Internal Server Error' });
   }

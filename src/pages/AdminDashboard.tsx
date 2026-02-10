@@ -30,8 +30,9 @@ interface ProductRow {
   price: number;
   discount_price: number | null;
   sizes: string[] | null;
-  colors: string[] | null;
   active: boolean;
+  description?: string | null;
+  is_bundle?: boolean;
 }
 
 interface BannerRow {
@@ -57,7 +58,6 @@ interface InventoryRow {
   id: string;
   product_id: string;
   size: string | null;
-  color: string | null;
   quantity: number;
   low_stock_threshold: number;
   products?: {
@@ -76,7 +76,6 @@ interface OrderRow {
   total_amount: number;
   created_at: string;
   delivery_type: 'pickup' | 'delivery';
-  delivery_area?: string;
   delivery_address?: string;
   pesapal_order_tracking_id?: string;
   pesapal_merchant_reference?: string;
@@ -264,61 +263,98 @@ const ProductsSection: React.FC = () => {
   const [form, setForm] = useState({
     name: '',
     category: 'hers' as 'his' | 'hers',
-    subcategory: '',
+    subcategory: 'Skincare',
     price: '',
     discount_price: '',
     sizesInput: '',
-    colorsInput: '',
     active: true,
+    description: '',
+    is_bundle: false,
   });
 
   const loadProducts = async () => {
     setLoading(true);
     setError(null);
+    
+    // Try to fetch with new fields first (excluding description for list performance)
     const { data, error: queryError } = await supabase
       .from('products')
       .select(
-        'id, name, category, subcategory, price, discount_price, sizes, colors, active'
+        'id, name, category, subcategory, price, discount_price, sizes, active, is_bundle'
       )
       .order('created_at', { ascending: false });
 
     if (queryError) {
-      setError(queryError.message);
-      setItems([]);
+      // If it fails (likely due to missing columns), fall back to basic fields
+      console.warn('Failed to load product list, falling back to basic fields:', queryError);
+      
+      const { data: fallbackData, error: fallbackError } = await supabase
+        .from('products')
+        .select(
+          'id, name, category, subcategory, price, discount_price, sizes, active'
+        )
+        .order('created_at', { ascending: false });
+
+      if (fallbackError) {
+        setError(fallbackError.message);
+        setItems([]);
+      } else {
+        setItems((fallbackData ?? []) as ProductRow[]);
+      }
     } else {
       setItems((data ?? []) as ProductRow[]);
     }
     setLoading(false);
   };
 
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadProducts();
+  }, []);
+
   const resetForm = () => {
     setEditingId(null);
     setForm({
       name: '',
       category: 'hers',
-      subcategory: '',
+      subcategory: 'Skincare',
       price: '',
       discount_price: '',
       sizesInput: '',
-      colorsInput: '',
       active: true,
+      description: '',
+      is_bundle: false,
     });
     setImageFile(null);
   };
 
-  const handleEdit = (row: ProductRow) => {
+  const handleEdit = async (row: ProductRow) => {
     setEditingId(row.id);
     setForm({
       name: row.name,
       category: row.category,
-      subcategory: row.subcategory ?? '',
+      subcategory: row.subcategory ?? 'Skincare',
       price: row.price.toString(),
       discount_price: row.discount_price != null ? row.discount_price.toString() : '',
       sizesInput: row.sizes ? row.sizes.join(', ') : '',
-      colorsInput: row.colors ? row.colors.join(', ') : '',
       active: row.active,
+      description: row.description ?? '', // Will be updated after fetch if not present
+      is_bundle: row.is_bundle ?? false,
     });
     setImageFile(null);
+
+    // Fetch full description if not present (optimization)
+    if (row.description === undefined) {
+      const { data } = await supabase
+        .from('products')
+        .select('description')
+        .eq('id', row.id)
+        .maybeSingle();
+        
+      if (data) {
+        setForm(prev => ({ ...prev, description: data.description || '' }));
+      }
+    }
   };
 
   const handleImageUpload = async (productId: string) => {
@@ -365,9 +401,6 @@ const ProductsSection: React.FC = () => {
     const sizesArray = form.sizesInput
       ? form.sizesInput.split(',').map(value => value.trim()).filter(Boolean)
       : [];
-    const colorsArray = form.colorsInput
-      ? form.colorsInput.split(',').map(value => value.trim()).filter(Boolean)
-      : [];
 
     const payload = {
       name: form.name,
@@ -376,8 +409,9 @@ const ProductsSection: React.FC = () => {
       price: priceValue,
       discount_price: discountValue,
       sizes: sizesArray,
-      colors: colorsArray,
       active: form.active,
+      description: form.description,
+      is_bundle: form.is_bundle,
     };
 
     if (editingId) {
@@ -387,9 +421,26 @@ const ProductsSection: React.FC = () => {
         .eq('id', editingId);
 
       if (updateError) {
-        setError(updateError.message);
-        setSaving(false);
-        return;
+        // Fallback: try updating without new fields if column error
+        if (updateError.message?.includes('column')) {
+           const { description, is_bundle, ...basicPayload } = payload; // eslint-disable-line @typescript-eslint/no-unused-vars
+           const { error: retryError } = await supabase
+            .from('products')
+            .update(basicPayload)
+            .eq('id', editingId);
+            
+           if (retryError) {
+             setError(retryError.message);
+             setSaving(false);
+             return;
+           } else {
+             setError('Note: Description and Bundle status were not saved (Database columns missing).');
+           }
+        } else {
+          setError(updateError.message);
+          setSaving(false);
+          return;
+        }
       }
 
       if (imageFile) {
@@ -402,16 +453,37 @@ const ProductsSection: React.FC = () => {
         .select('id')
         .single();
 
-      if (insertError || !insertData) {
-        setError(insertError?.message ?? 'Failed to create product');
-        setSaving(false);
-        return;
-      }
-
-      const newProductId = insertData.id as string;
-
-      if (imageFile) {
-        await handleImageUpload(newProductId);
+      if (insertError) {
+         // Fallback: try inserting without new fields if column error
+         if (insertError.message?.includes('column')) {
+            const { description, is_bundle, ...basicPayload } = payload; // eslint-disable-line @typescript-eslint/no-unused-vars
+            const { data: retryData, error: retryError } = await supabase
+              .from('products')
+              .insert(basicPayload)
+              .select('id')
+              .single();
+              
+            if (retryError || !retryData) {
+              setError(retryError?.message ?? 'Failed to create product');
+              setSaving(false);
+              return;
+            }
+            
+            const newProductId = retryData.id as string;
+            if (imageFile) {
+              await handleImageUpload(newProductId);
+            }
+            setError('Note: Description and Bundle status were not saved (Database columns missing).');
+         } else {
+            setError(insertError.message);
+            setSaving(false);
+            return;
+         }
+      } else if (insertData) {
+        const newProductId = insertData.id as string;
+        if (imageFile) {
+          await handleImageUpload(newProductId);
+        }
       }
     }
 
@@ -451,6 +523,16 @@ const ProductsSection: React.FC = () => {
               required
             />
           </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Description (Visible on Product Page)</label>
+            <textarea
+              value={form.description}
+              onChange={event => setForm({ ...form, description: event.target.value })}
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-accent"
+              rows={3}
+              placeholder="Enter product description here..."
+            />
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">
@@ -471,8 +553,7 @@ const ProductsSection: React.FC = () => {
               <label className="block text-xs font-medium text-gray-600 mb-1">
                 Subcategory
               </label>
-              <input
-                type="text"
+              <select
                 value={form.subcategory}
                 onChange={event =>
                   setForm({
@@ -481,7 +562,11 @@ const ProductsSection: React.FC = () => {
                   })
                 }
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-accent"
-              />
+              >
+                <option value="Skincare">Skincare</option>
+                <option value="Perfumes">Perfumes</option>
+                <option value="Body Essentials">Body Essentials</option>
+              </select>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -520,7 +605,7 @@ const ProductsSection: React.FC = () => {
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">
-              Sizes (comma separated)
+              Sizes (e.g. 50ml, 100g)
             </label>
             <input
               type="text"
@@ -532,24 +617,7 @@ const ProductsSection: React.FC = () => {
                 })
               }
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-accent"
-              placeholder="S, M, L"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
-              Colors (comma separated)
-            </label>
-            <input
-              type="text"
-              value={form.colorsInput}
-              onChange={event =>
-                setForm({
-                  ...form,
-                  colorsInput: event.target.value,
-                })
-              }
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-accent"
-              placeholder="Red, Gold, Nude"
+              placeholder="50ml, 100g"
             />
           </div>
           <div>
@@ -580,6 +648,34 @@ const ProductsSection: React.FC = () => {
                 className="rounded border-gray-300 text-accent focus:ring-accent"
               />
               Active on storefront
+            </label>
+            <label className="inline-flex items-center gap-2 text-xs text-gray-600">
+              <input
+                type="checkbox"
+                checked={form.is_bundle}
+                onChange={event =>
+                  setForm({
+                    ...form,
+                    is_bundle: event.target.checked,
+                  })
+                }
+                className="rounded border-gray-300 text-accent focus:ring-accent"
+              />
+              Is a Bundle
+            </label>
+            <label className="inline-flex items-center gap-2 text-xs text-gray-600">
+              <input
+                type="checkbox"
+                checked={form.is_bundle}
+                onChange={event =>
+                  setForm({
+                    ...form,
+                    is_bundle: event.target.checked,
+                  })
+                }
+                className="rounded border-gray-300 text-accent focus:ring-accent"
+              />
+              Is Bundle
             </label>
             <div className="flex gap-2">
               {editingId && (
@@ -692,7 +788,6 @@ const InventorySection: React.FC = () => {
   const [form, setForm] = useState({
     product_id: '',
     size: '',
-    color: '',
     quantity: '',
     low_stock_threshold: '5',
   });
@@ -701,26 +796,55 @@ const InventorySection: React.FC = () => {
     setLoading(true);
     setError(null);
 
+    // 1. Fetch Products (Robust)
+    let fetchedProducts: ProductRow[] = [];
+    const { data: productRows, error: productsError } = await supabase
+      .from('products')
+      .select('id, name, category, subcategory, price, discount_price, sizes, active')
+      .order('name');
+
+    if (productsError) {
+      console.warn('Inventory: Failed to load products with subcategory/sizes', productsError);
+      // Fallback fetch
+      const { data: fallbackProducts, error: fallbackError } = await supabase
+        .from('products')
+        .select('id, name, category, price, active')
+        .order('name');
+        
+      if (fallbackError) {
+        setError(`Failed to load products: ${fallbackError.message}`);
+      } else {
+        fetchedProducts = (fallbackProducts ?? []) as ProductRow[];
+      }
+    } else {
+      fetchedProducts = (productRows ?? []) as ProductRow[];
+    }
+    setProducts(fetchedProducts);
+
+    // 2. Fetch Inventory (Robust)
     const { data: inventoryRows, error: inventoryError } = await supabase
       .from('inventory')
       .select(
-        'id, product_id, size, color, quantity, low_stock_threshold, products(name)'
+        'id, product_id, size, quantity, low_stock_threshold, products(name)'
       )
       .order('updated_at', { ascending: false });
 
-    const { data: productRows, error: productsError } = await supabase
-      .from('products')
-      .select('id, name, category, subcategory, price, discount_price, sizes, colors, active')
-      .order('name');
+    if (inventoryError) {
+      console.warn('Inventory: Failed to load inventory with join', inventoryError);
+      // Fallback: try without join or extra fields
+      const { data: fallbackInventory, error: fallbackInvError } = await supabase
+        .from('inventory')
+        .select('id, product_id, quantity, low_stock_threshold')
+        .order('updated_at', { ascending: false });
 
-    if (inventoryError || productsError) {
-      setError(inventoryError?.message ?? productsError?.message ?? 'Failed to load inventory');
-      setItems([]);
-      setProducts([]);
+      if (fallbackInvError) {
+         setError(prev => prev ? `${prev} | Inventory error: ${fallbackInvError.message}` : `Inventory error: ${fallbackInvError.message}`);
+         setItems([]);
+      } else {
+         setItems((fallbackInventory ?? []) as InventoryRow[]);
+      }
     } else {
-      const inventoryData = (inventoryRows ?? []) as unknown as InventoryRow[];
-      setItems(inventoryData);
-      setProducts((productRows ?? []) as ProductRow[]);
+      setItems((inventoryRows ?? []) as unknown as InventoryRow[]);
     }
 
     setLoading(false);
@@ -731,7 +855,6 @@ const InventorySection: React.FC = () => {
     setForm({
       product_id: '',
       size: '',
-      color: '',
       quantity: '',
       low_stock_threshold: '5',
     });
@@ -742,7 +865,6 @@ const InventorySection: React.FC = () => {
     setForm({
       product_id: row.product_id,
       size: row.size ?? '',
-      color: row.color ?? '',
       quantity: row.quantity.toString(),
       low_stock_threshold: row.low_stock_threshold.toString(),
     });
@@ -759,7 +881,6 @@ const InventorySection: React.FC = () => {
     const payload = {
       product_id: form.product_id,
       size: form.size || null,
-      color: form.color || null,
       quantity: quantityValue,
       low_stock_threshold: thresholdValue,
     };
@@ -841,36 +962,47 @@ const InventorySection: React.FC = () => {
               ))}
             </select>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Size</label>
-              <input
-                type="text"
-                value={form.size}
-                onChange={event =>
-                  setForm({
-                    ...form,
-                    size: event.target.value,
-                  })
+              {(() => {
+                const selectedProduct = products.find(p => p.id === form.product_id);
+                if (selectedProduct?.sizes && selectedProduct.sizes.length > 0) {
+                  return (
+                    <select
+                      value={form.size}
+                      onChange={event =>
+                        setForm({
+                          ...form,
+                          size: event.target.value,
+                        })
+                      }
+                      className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-accent"
+                    >
+                      <option value="">Select size</option>
+                      {selectedProduct.sizes.map(size => (
+                        <option key={size} value={size}>
+                          {size}
+                        </option>
+                      ))}
+                    </select>
+                  );
                 }
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-accent"
-                placeholder="e.g. 50ml, S"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Color</label>
-              <input
-                type="text"
-                value={form.color}
-                onChange={event =>
-                  setForm({
-                    ...form,
-                    color: event.target.value,
-                  })
-                }
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-accent"
-                placeholder="Optional"
-              />
+                return (
+                  <input
+                    type="text"
+                    value={form.size}
+                    onChange={event =>
+                      setForm({
+                        ...form,
+                        size: event.target.value,
+                      })
+                    }
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-accent"
+                    placeholder="e.g. 50ml, 100g"
+                  />
+                );
+              })()}
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -966,7 +1098,7 @@ const InventorySection: React.FC = () => {
                     {row.products?.name ?? productNameFor(row.product_id)}
                   </td>
                   <td className="py-2 pr-4 text-gray-600">
-                    {[row.size, row.color].filter(Boolean).join(' / ') || 'Default'}
+                    {[row.size].filter(Boolean).join(' / ') || 'Default'}
                   </td>
                   <td className="py-2 pr-4 text-gray-800">{row.quantity}</td>
                   <td className="py-2 pr-4 text-gray-800">{row.low_stock_threshold}</td>
@@ -1009,7 +1141,7 @@ const OrdersSection: React.FC = () => {
     const { data, error: queryError } = await supabase
       .from('orders')
       .select(
-        'id, customer_name, email, phone, status, total_amount, created_at, delivery_type, delivery_area, delivery_address, pesapal_order_tracking_id, pesapal_merchant_reference'
+        'id, customer_name, email, phone, status, total_amount, created_at, delivery_type, delivery_address, pesapal_order_tracking_id, pesapal_merchant_reference'
       )
       .order('created_at', { ascending: false });
 
@@ -1021,6 +1153,11 @@ const OrdersSection: React.FC = () => {
     }
     setLoading(false);
   };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadOrders();
+  }, []);
 
   const handleStatusChange = async (id: string, status: OrderStatus) => {
     setSavingId(id);
@@ -1101,9 +1238,6 @@ const OrdersSection: React.FC = () => {
                 </td>
                 <td className="py-2 pr-4 text-gray-600 align-top">
                   <div className="capitalize font-medium">{order.delivery_type}</div>
-                  {order.delivery_area && (
-                    <div className="text-[10px] text-accent font-medium">{order.delivery_area}</div>
-                  )}
                   {order.delivery_address && (
                     <div className="text-[10px] text-gray-400 max-w-[150px] truncate" title={order.delivery_address}>
                       {order.delivery_address}
@@ -1202,6 +1336,11 @@ const CustomersSection: React.FC = () => {
     setItems(Array.from(byEmail.values()));
     setLoading(false);
   };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadCustomers();
+  }, []);
 
   return (
     <div className="bg-white rounded-2xl p-6 border border-gray-100 overflow-x-auto">
@@ -1314,6 +1453,8 @@ const BannersSection: React.FC = () => {
   const loadBanners = async () => {
     setLoading(true);
     setError(null);
+    
+    // Try to fetch with all fields first
     const { data, error: queryError } = await supabase
       .from('banners')
       .select(
@@ -1323,11 +1464,63 @@ const BannersSection: React.FC = () => {
       .order('sort_order');
 
     if (queryError) {
-      setError(queryError.message);
-      setItems([]);
+      console.warn('Failed to load full banner details, falling back to basic fields:', queryError);
+      
+      // Fallback to basic fields that are guaranteed to exist
+      const { data: fallbackData, error: fallbackError } = await supabase
+        .from('banners')
+        .select(
+          'id, section, image_path, active, sort_order'
+        )
+        .order('section')
+        .order('sort_order');
+
+      if (fallbackError) {
+        setError(fallbackError.message);
+        setItems([]);
+      } else {
+        setItems((fallbackData ?? []) as BannerRow[]);
+      }
     } else {
       setItems((data ?? []) as BannerRow[]);
     }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadBanners();
+  }, []);
+
+  const seedBanners = async () => {
+    setLoading(true);
+    const defaultBanners = [
+      {
+        section: 'hers',
+        image_path: 'https://images.unsplash.com/photo-1616683693504-3ea7e9ad6fec?q=80&w=1920&auto=format&fit=crop',
+        headline: 'Radiant Beauty',
+        subtext: 'Discover our new collection',
+        cta_text: 'Shop Now',
+        cta_link: '/category/hers',
+        active: true,
+        sort_order: 1
+      },
+      {
+        section: 'his',
+        image_path: 'https://images.unsplash.com/photo-1615526675159-e248c3021d3f?q=80&w=1920&auto=format&fit=crop',
+        headline: 'Bold Elegance',
+        subtext: 'Essentials for the modern man',
+        cta_text: 'Shop Now',
+        cta_link: '/category/his',
+        active: true,
+        sort_order: 1
+      }
+    ];
+
+    for (const banner of defaultBanners) {
+      await supabase.from('banners').insert(banner);
+    }
+    await loadBanners();
     setLoading(false);
   };
 
@@ -1614,18 +1807,39 @@ const BannersSection: React.FC = () => {
       <div className="bg-white rounded-2xl p-6 border border-gray-100 overflow-x-auto">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-sm font-semibold text-accent">Banners</h2>
-          <button
-            type="button"
-            onClick={loadBanners}
-            className="text-xs text-gray-500 hover:text-accent"
-          >
-            Refresh
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={seedBanners}
+              className="text-xs text-accent hover:underline"
+            >
+              Initialize Defaults
+            </button>
+            <button
+              type="button"
+              onClick={loadBanners}
+              className="text-xs text-gray-500 hover:text-accent"
+            >
+              Refresh
+            </button>
+          </div>
         </div>
         {loading ? (
           <p className="text-xs text-gray-500">Loading banners...</p>
         ) : items.length === 0 ? (
-          <p className="text-xs text-gray-500">No banners found.</p>
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+             <p className="text-xs text-gray-500 mb-2">No banners found.</p>
+             <p className="text-[10px] text-gray-400 max-w-xs">
+               If you just set up the database, you might need to initialize the default banners.
+             </p>
+             <button
+              type="button"
+              onClick={seedBanners}
+              className="mt-3 px-3 py-1.5 rounded-full bg-gray-100 text-accent text-xs hover:bg-gray-200"
+            >
+              Initialize Defaults
+            </button>
+          </div>
         ) : (
           <table className="min-w-full text-xs">
             <thead>
