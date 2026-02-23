@@ -45,11 +45,12 @@ const getPesapalToken = async () => {
       console.log('Auth Response:', JSON.stringify(response.data, null, 2));
       throw new Error(response.data.message || 'Failed to authenticate');
     }
-  } catch (error: any) {
-    if (error.response) {
-       console.error('Auth Error Response:', JSON.stringify(error.response.data, null, 2));
+  } catch (error: unknown) {
+    if (axios.isAxiosError(error) && error.response) {
+      console.error('Auth Error Response:', JSON.stringify(error.response.data, null, 2));
     }
-    console.error('Auth Error:', error.message);
+    const message = (error as Error).message ?? String(error);
+    console.error('Auth Error:', message);
     throw error;
   }
 };
@@ -80,8 +81,13 @@ const registerIPN = async (url: string) => {
     console.log('\nPlease add this ID to your .env.local file:');
     console.log(`PESAPAL_IPN_ID=${response.data.ipn_id}`);
     
-  } catch (error: any) {
-    console.error('Registration Error:', error.response?.data || error.message);
+  } catch (error: unknown) {
+    if (axios.isAxiosError(error)) {
+      console.error('Registration Error:', error.response?.data || error.message);
+    } else {
+      const message = (error as Error).message ?? String(error);
+      console.error('Registration Error:', message);
+    }
   }
 };
 

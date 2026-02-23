@@ -250,7 +250,12 @@ export const Checkout: React.FC = () => {
                 {items.map(item => (
                   <div key={item.id} className="flex gap-3">
                     <div className="w-16 h-16 bg-gray-50 rounded-md overflow-hidden flex-shrink-0">
-                      <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        loading="lazy"
+                        className="w-full h-full object-cover"
+                      />
                     </div>
                     <div className="flex-1">
                       <h4 className="text-sm font-medium text-gray-900 line-clamp-1">{item.name}</h4>

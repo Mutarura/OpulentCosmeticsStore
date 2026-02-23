@@ -4,7 +4,9 @@
 ALTER TABLE public.orders 
 ADD COLUMN IF NOT EXISTS currency text DEFAULT 'KES',
 ADD COLUMN IF NOT EXISTS delivery_address text,
-ADD COLUMN IF NOT EXISTS delivery_area text;
+ADD COLUMN IF NOT EXISTS delivery_area text,
+ADD COLUMN IF NOT EXISTS pesapal_merchant_reference text,
+ADD COLUMN IF NOT EXISTS pesapal_order_tracking_id text;
 
 -- 2. Add missing columns to 'order_items' table
 ALTER TABLE public.order_items 
