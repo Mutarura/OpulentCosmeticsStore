@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
-import { useCategory } from '../context/CategoryContext';
 import { Mail, Phone, MapPin, Send } from 'lucide-react';
 
 export const Contact: React.FC = () => {
-  const { category } = useCategory();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -22,52 +20,53 @@ export const Contact: React.FC = () => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const accentColor = category === 'her' ? 'text-theme-pink' : 'text-theme-teal';
-  const btnColor = category === 'her' ? 'bg-theme-pink hover:bg-pink-600' : 'bg-theme-teal hover:bg-teal-600';
-  const ringColor = category === 'her' ? 'focus:ring-theme-pink' : 'focus:ring-theme-teal';
-
   return (
-    <div className="min-h-screen bg-white py-12">
+    <div className="min-h-screen bg-gradient-to-b from-slate-100 via-rose-50 to-slate-50 py-16">
       <div className="container mx-auto px-4">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
-            <h1 className="text-3xl md:text-4xl font-serif font-bold text-accent mb-4">Contact Us</h1>
-            <p className="text-gray-500">We'd love to hear from you. Send us a message and we'll respond as soon as possible.</p>
+            <p className="text-xs font-semibold tracking-[0.28em] uppercase text-gray-600 mb-3">
+              ENQUIRIES & SUPPORT
+            </p>
+            <h1 className="text-3xl md:text-4xl font-serif font-bold text-slate-900 mb-4">Contact Opulent</h1>
+            <p className="text-gray-700 max-w-2xl mx-auto">
+              Have a question about an order, a product, or stocking Opulent? Share a few details below and we&apos;ll get back to you.
+            </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
             {/* Contact Info */}
             <div className="space-y-8">
-              <div>
-                <h3 className="text-xl font-serif font-bold text-accent mb-6">Get In Touch</h3>
+              <div className="bg-white rounded-2xl p-6 shadow-md">
+                <h3 className="text-xl font-serif font-bold text-slate-900 mb-6">Get in touch</h3>
                 <div className="space-y-6">
                   <div className="flex items-start gap-4">
-                    <div className={`p-3 rounded-full bg-gray-50 ${accentColor}`}>
+                    <div className="p-3 rounded-full bg-rose-50 text-rose-500">
                       <MapPin className="w-6 h-6" />
                     </div>
                     <div>
                       <h4 className="font-medium text-gray-900">Visit Us</h4>
-                      <p className="text-gray-500">Nairobi, Kenya</p>
+                      <p className="text-gray-600">Two Rivers Mall, Nairobi</p>
                     </div>
                   </div>
                   
                   <div className="flex items-start gap-4">
-                    <div className={`p-3 rounded-full bg-gray-50 ${accentColor}`}>
+                    <div className="p-3 rounded-full bg-rose-50 text-rose-500">
                       <Phone className="w-6 h-6" />
                     </div>
                     <div>
                       <h4 className="font-medium text-gray-900">Call Us</h4>
-                      <p className="text-gray-500">+254 700 000 000</p>
+                      <p className="text-gray-600">0773 198 364</p>
                     </div>
                   </div>
 
                   <div className="flex items-start gap-4">
-                    <div className={`p-3 rounded-full bg-gray-50 ${accentColor}`}>
+                    <div className="p-3 rounded-full bg-rose-50 text-rose-500">
                       <Mail className="w-6 h-6" />
                     </div>
                     <div>
                       <h4 className="font-medium text-gray-900">Email Us</h4>
-                      <p className="text-gray-500">hello@opulentcosmetics.ke</p>
+                      <p className="text-gray-600">hello@opulentcosmetics.ke</p>
                     </div>
                   </div>
                 </div>
@@ -75,11 +74,14 @@ export const Contact: React.FC = () => {
             </div>
 
             {/* Enquiry Form */}
-            <div className="bg-gray-50 p-8 rounded-2xl">
-              <h3 className="text-xl font-serif font-bold text-accent mb-6">Send an Enquiry</h3>
+            <div className="bg-white rounded-2xl p-8 shadow-xl">
+              <h3 className="text-xl font-serif font-bold text-slate-900 mb-2">Send an enquiry</h3>
+              <p className="text-sm text-slate-600 mb-6">
+                Share as much context as you can — it helps us respond quickly and accurately.
+              </p>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-800 mb-1">Name</label>
                   <input
                     type="text"
                     id="name"
@@ -87,13 +89,13 @@ export const Contact: React.FC = () => {
                     required
                     value={formData.name}
                     onChange={handleChange}
-                    className={`w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-1 ${ringColor} bg-white`}
+                    className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-1 focus:ring-slate-900/40 bg-white text-sm"
                     placeholder="Your name"
                   />
                 </div>
                 
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-800 mb-1">Email</label>
                   <input
                     type="email"
                     id="email"
@@ -101,13 +103,13 @@ export const Contact: React.FC = () => {
                     required
                     value={formData.email}
                     onChange={handleChange}
-                    className={`w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-1 ${ringColor} bg-white`}
+                    className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-1 focus:ring-slate-900/40 bg-white text-sm"
                     placeholder="your@email.com"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+                  <label htmlFor="subject" className="block text-sm font-medium text-gray-800 mb-1">Subject</label>
                   <input
                     type="text"
                     id="subject"
@@ -115,13 +117,13 @@ export const Contact: React.FC = () => {
                     required
                     value={formData.subject}
                     onChange={handleChange}
-                    className={`w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-1 ${ringColor} bg-white`}
+                    className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-1 focus:ring-slate-900/40 bg-white text-sm"
                     placeholder="How can we help?"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-1">Message</label>
+                  <label htmlFor="message" className="block text-sm font-medium text-gray-800 mb-1">Message</label>
                   <textarea
                     id="message"
                     name="message"
@@ -129,14 +131,14 @@ export const Contact: React.FC = () => {
                     rows={4}
                     value={formData.message}
                     onChange={handleChange}
-                    className={`w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-1 ${ringColor} bg-white resize-none`}
+                    className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-1 focus:ring-slate-900/40 bg-white resize-none text-sm"
                     placeholder="Write your message here..."
                   />
                 </div>
 
                 <button
                   type="submit"
-                  className={`w-full py-3 px-6 text-white font-medium rounded-full shadow-md transition-all hover:scale-[1.02] flex items-center justify-center gap-2 ${btnColor}`}
+                  className="w-full py-3 px-6 text-white font-medium rounded-full shadow-md transition-all hover:scale-[1.02] flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800"
                 >
                   <span>Send Message</span>
                   <Send className="w-4 h-4" />

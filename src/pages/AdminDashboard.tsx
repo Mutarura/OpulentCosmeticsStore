@@ -566,6 +566,7 @@ const ProductsSection: React.FC = () => {
                 <option value="Skincare">Skincare</option>
                 <option value="Perfumes">Perfumes</option>
                 <option value="Body Essentials">Body Essentials</option>
+                <option value="Grooming">Grooming</option>
               </select>
             </div>
           </div>

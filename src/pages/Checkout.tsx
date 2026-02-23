@@ -11,20 +11,60 @@ interface DeliveryZone {
   fee: number;
 }
 
+const CHECKOUT_FORM_KEY = 'opulent_checkout_form';
+
 export const Checkout: React.FC = () => {
   const navigate = useNavigate();
   const { items, totalPrice } = useCart();
   const [loading, setLoading] = useState(false);
   const [zones, setZones] = useState<DeliveryZone[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'mpesa'>('mpesa');
-  
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    address: '',
-    zoneId: '',
+  const [formData, setFormData] = useState(() => {
+    if (typeof window === 'undefined') {
+      return {
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+        address: '',
+        zoneId: '',
+        deliveryType: 'delivery' as 'delivery' | 'pickup',
+      };
+    }
+    try {
+      const stored = window.sessionStorage.getItem(CHECKOUT_FORM_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored) as {
+          firstName: string;
+          lastName: string;
+          email: string;
+          phone: string;
+          address: string;
+          zoneId: string;
+          deliveryType?: 'delivery' | 'pickup';
+        };
+        return {
+          firstName: parsed.firstName ?? '',
+          lastName: parsed.lastName ?? '',
+          email: parsed.email ?? '',
+          phone: parsed.phone ?? '',
+          address: parsed.address ?? '',
+          zoneId: parsed.zoneId ?? '',
+          deliveryType: parsed.deliveryType ?? 'delivery',
+        };
+      }
+    } catch {
+      // ignore storage errors
+    }
+    return {
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+      address: '',
+      zoneId: '',
+      deliveryType: 'delivery',
+    };
   });
 
   useEffect(() => {
@@ -43,8 +83,18 @@ export const Checkout: React.FC = () => {
     fetchZones();
   }, [items, navigate]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      window.sessionStorage.setItem(CHECKOUT_FORM_KEY, JSON.stringify(formData));
+    } catch {
+      // ignore storage errors
+    }
+  }, [formData]);
+
+  const isDelivery = formData.deliveryType === 'delivery';
   const selectedZone = zones.find(z => z.id === formData.zoneId);
-  const shippingFee = selectedZone?.fee || 0;
+  const shippingFee = isDelivery && selectedZone ? selectedZone.fee : 0;
   const grandTotal = totalPrice + shippingFee;
 
   const handleCheckout = async (e: React.FormEvent) => {
@@ -52,6 +102,12 @@ export const Checkout: React.FC = () => {
     setLoading(true);
 
     try {
+      if (isDelivery && (!formData.zoneId || !formData.address.trim())) {
+        alert('Please select a delivery zone and enter your delivery address.');
+        setLoading(false);
+        return;
+      }
+
       const response = await fetch('/api/payments/initialize', {
         method: 'POST',
         headers: {
@@ -65,9 +121,10 @@ export const Checkout: React.FC = () => {
             email: formData.email,
             phone: formData.phone,
           },
-          deliveryZoneId: formData.zoneId,
-          deliveryAddress: formData.address,
-          paymentMethod, // Sending the selected method
+          deliveryType: formData.deliveryType,
+          deliveryZoneId: isDelivery ? formData.zoneId : null,
+          deliveryAddress: isDelivery ? formData.address : null,
+          paymentMethod,
         }),
       });
 
@@ -90,7 +147,7 @@ export const Checkout: React.FC = () => {
     <div className="min-h-screen bg-gray-50 pt-8 pb-20">
       <div className="container mx-auto px-4">
         <div className="mb-6">
-          <Link to="/cart" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-accent">
+          <Link to="/cart" className="inline-flex items-center gap-2 text-sm text-gray-700 hover:text-accent">
             <ArrowLeft className="w-4 h-4" /> Back to Cart
           </Link>
         </div>
@@ -155,34 +212,85 @@ export const Checkout: React.FC = () => {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Delivery Zone</label>
-                  <select
-                    required
-                    value={formData.zoneId}
-                    onChange={e => setFormData({...formData, zoneId: e.target.value})}
-                    className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-1 focus:ring-accent text-sm bg-white"
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <label
+                    className={`cursor-pointer border rounded-xl p-3 flex items-center gap-3 text-xs transition-all ${
+                      isDelivery ? 'border-accent bg-accent/5 ring-1 ring-accent' : 'border-gray-200 hover:border-gray-300'
+                    }`}
                   >
-                    <option value="">Select a delivery zone</option>
-                    {zones.map(zone => (
-                      <option key={zone.id} value={zone.id}>
-                        {zone.name} - KSh {zone.fee}
-                      </option>
-                    ))}
-                  </select>
+                    <input
+                      type="radio"
+                      name="deliveryType"
+                      value="delivery"
+                      checked={isDelivery}
+                      onChange={() => setFormData({ ...formData, deliveryType: 'delivery' })}
+                      className="w-4 h-4 text-accent focus:ring-accent"
+                    />
+                    <div>
+                      <div className="font-semibold text-gray-900">Delivery</div>
+                      <div className="text-[11px] text-gray-500">Have your order brought to your address.</div>
+                    </div>
+                  </label>
+
+                  <label
+                    className={`cursor-pointer border rounded-xl p-3 flex items-center gap-3 text-xs transition-all ${
+                      !isDelivery ? 'border-accent bg-accent/5 ring-1 ring-accent' : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="deliveryType"
+                      value="pickup"
+                      checked={!isDelivery}
+                      onChange={() =>
+                        setFormData({
+                          ...formData,
+                          deliveryType: 'pickup',
+                        })
+                      }
+                      className="w-4 h-4 text-accent focus:ring-accent"
+                    />
+                    <div>
+                      <div className="font-semibold text-gray-900">Pick up</div>
+                      <div className="text-[11px] text-gray-500">
+                        Collect from Two Rivers Mall, Nairobi (10am – 7pm daily).
+                      </div>
+                    </div>
+                  </label>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Delivery Address</label>
-                  <textarea
-                    required
-                    rows={3}
-                    value={formData.address}
-                    onChange={e => setFormData({...formData, address: e.target.value})}
-                    placeholder="Street, House/Apt Number, Landmarks..."
-                    className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-1 focus:ring-accent text-sm"
-                  />
-                </div>
+                {isDelivery && (
+                  <>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Delivery Zone</label>
+                      <select
+                        required={isDelivery}
+                        value={formData.zoneId}
+                        onChange={e => setFormData({ ...formData, zoneId: e.target.value })}
+                        className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-1 focus:ring-accent text-sm bg-white"
+                      >
+                        <option value="">Select a delivery zone</option>
+                        {zones.map(zone => (
+                          <option key={zone.id} value={zone.id}>
+                            {zone.name} - KSh {zone.fee}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Delivery Address</label>
+                      <textarea
+                        required={isDelivery}
+                        rows={3}
+                        value={formData.address}
+                        onChange={e => setFormData({ ...formData, address: e.target.value })}
+                        placeholder="Street, House/Apt Number, Landmarks..."
+                        className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-1 focus:ring-accent text-sm"
+                      />
+                    </div>
+                  </>
+                )}
               </form>
             </div>
 
@@ -267,15 +375,15 @@ export const Checkout: React.FC = () => {
               </div>
 
               <div className="border-t border-gray-100 pt-4 space-y-3 mb-6">
-                <div className="flex justify-between text-sm text-gray-600">
+                <div className="flex justify-between text-sm text-gray-800">
                   <span>Subtotal</span>
                   <span>KSh {totalPrice.toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between text-sm text-gray-600">
+                <div className="flex justify-between text-sm text-gray-800">
                   <span>Shipping</span>
                   <span>{selectedZone ? `KSh ${selectedZone.fee}` : '--'}</span>
                 </div>
-                <div className="flex justify-between text-lg font-bold text-accent pt-2 border-t border-gray-100">
+                <div className="flex justify-between text-lg font-semibold text-accent pt-2 border-t border-gray-100">
                   <span>Total</span>
                   <span>KSh {grandTotal.toLocaleString()}</span>
                 </div>
@@ -297,7 +405,7 @@ export const Checkout: React.FC = () => {
                 )}
               </button>
               
-              <p className="text-[10px] text-center text-gray-400 mt-4">
+              <p className="text-[10px] text-center text-gray-500 mt-4">
                 By placing this order, you agree to our Terms of Service and Privacy Policy.
               </p>
             </div>

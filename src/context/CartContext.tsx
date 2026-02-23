@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { Product } from '../data/products';
 
@@ -18,8 +18,40 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
+const STORAGE_KEY = 'opulent_cart_items';
+const CHECKOUT_FORM_KEY = 'opulent_checkout_form';
+
+const loadCartFromStorage = (): CartItem[] => {
+  if (typeof window === 'undefined') return [];
+  try {
+    const stored = window.sessionStorage.getItem(STORAGE_KEY);
+    if (!stored) return [];
+    const parsed = JSON.parse(stored) as CartItem[];
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map(item => ({
+      ...item,
+      quantity: typeof item.quantity === 'number' && item.quantity > 0 ? item.quantity : 1,
+    }));
+  } catch {
+    return [];
+  }
+};
+
 export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [items, setItems] = useState<CartItem[]>([]);
+  const [items, setItems] = useState<CartItem[]>(() => loadCartFromStorage());
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      if (items.length === 0) {
+        window.sessionStorage.removeItem(STORAGE_KEY);
+        return;
+      }
+      window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    } catch {
+      // ignore storage errors
+    }
+  }, [items]);
 
   const addToCart = (product: Product, quantity = 1) => {
     setItems(prevItems => {
@@ -50,6 +82,14 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const clearCart = () => {
     setItems([]);
+    if (typeof window !== 'undefined') {
+      try {
+        window.sessionStorage.removeItem(STORAGE_KEY);
+        window.sessionStorage.removeItem(CHECKOUT_FORM_KEY);
+      } catch {
+        // ignore storage errors
+      }
+    }
   };
 
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);

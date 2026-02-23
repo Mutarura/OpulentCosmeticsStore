@@ -55,3 +55,36 @@ WHERE NOT EXISTS (SELECT 1 FROM public.delivery_zones WHERE name = 'Nairobi Outs
 INSERT INTO public.delivery_zones (name, fee, active, estimated_days)
 SELECT 'Upcountry', 500, true, '2-4 days'
 WHERE NOT EXISTS (SELECT 1 FROM public.delivery_zones WHERE name = 'Upcountry');
+
+-- 9. Seed demo products (idempotent per product, keeps existing rows)
+INSERT INTO public.products (name, category, subcategory, price, discount_price, sizes, active, description, is_bundle)
+SELECT 'Velvet Rose Lipstick', 'hers', 'Makeup', 3500, NULL::numeric(10,2), ARRAY['3.5g'], true, 'A rich, creamy lipstick with a satin finish that lasts all day.', false
+WHERE NOT EXISTS (SELECT 1 FROM public.products WHERE name = 'Velvet Rose Lipstick');
+
+INSERT INTO public.products (name, category, subcategory, price, discount_price, sizes, active, description, is_bundle)
+SELECT 'Radiance Serum', 'hers', 'Skincare', 5200, NULL::numeric(10,2), ARRAY['30ml'], true, 'Brightening serum infused with Vitamin C for a glowing complexion.', false
+WHERE NOT EXISTS (SELECT 1 FROM public.products WHERE name = 'Radiance Serum');
+
+INSERT INTO public.products (name, category, subcategory, price, discount_price, sizes, active, description, is_bundle)
+SELECT 'Floral Essence Perfume', 'hers', 'Fragrance', 9500, NULL::numeric(10,2), ARRAY['50ml'], true, 'A delicate blend of jasmine, rose, and vanilla.', false
+WHERE NOT EXISTS (SELECT 1 FROM public.products WHERE name = 'Floral Essence Perfume');
+
+INSERT INTO public.products (name, category, subcategory, price, discount_price, sizes, active, description, is_bundle)
+SELECT 'Hydrating Night Cream', 'hers', 'Skincare', 4500, NULL::numeric(10,2), ARRAY['50ml'], true, 'Deeply moisturizing night cream to repair skin while you sleep.', false
+WHERE NOT EXISTS (SELECT 1 FROM public.products WHERE name = 'Hydrating Night Cream');
+
+INSERT INTO public.products (name, category, subcategory, price, discount_price, sizes, active, description, is_bundle)
+SELECT 'Refined Beard Oil', 'his', 'Grooming', 4200, NULL::numeric(10,2), ARRAY['30ml'], true, 'Nourishing beard oil with a masculine cedarwood scent.', false
+WHERE NOT EXISTS (SELECT 1 FROM public.products WHERE name = 'Refined Beard Oil');
+
+INSERT INTO public.products (name, category, subcategory, price, discount_price, sizes, active, description, is_bundle)
+SELECT 'Daily Moisturizer for Men', 'his', 'Skincare', 3600, NULL::numeric(10,2), ARRAY['50ml'], true, 'Lightweight, non-greasy moisturizer with SPF 15.', false
+WHERE NOT EXISTS (SELECT 1 FROM public.products WHERE name = 'Daily Moisturizer for Men');
+
+INSERT INTO public.products (name, category, subcategory, price, discount_price, sizes, active, description, is_bundle)
+SELECT 'Ocean Breeze Cologne', 'his', 'Fragrance', 8500, NULL::numeric(10,2), ARRAY['50ml'], true, 'Fresh and invigorating cologne with notes of sea salt and citrus.', false
+WHERE NOT EXISTS (SELECT 1 FROM public.products WHERE name = 'Ocean Breeze Cologne');
+
+INSERT INTO public.products (name, category, subcategory, price, discount_price, sizes, active, description, is_bundle)
+SELECT 'Shaving Cream Kit', 'his', 'Grooming', 5200, NULL::numeric(10,2), ARRAY['Kit'], true, 'Luxury shaving kit including brush, cream, and razor.', true
+WHERE NOT EXISTS (SELECT 1 FROM public.products WHERE name = 'Shaving Cream Kit');

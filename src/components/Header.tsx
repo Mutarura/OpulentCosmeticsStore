@@ -24,6 +24,26 @@ type ProductRowWithImages = {
 
 const PRODUCT_IMAGES_BUCKET = 'product-images';
 
+const getFallbackImageForProduct = (name: string) => {
+  const lower = name.toLowerCase();
+  if (lower.includes('lipstick') || lower.includes('velvet')) {
+    return 'https://images.unsplash.com/photo-1586495777744-4413f21062fa?q=80&w=900&auto=format&fit=crop';
+  }
+  if (lower.includes('serum') || lower.includes('radiance')) {
+    return 'https://images.unsplash.com/photo-1612815154858-60aa4c59eaa5?q=80&w=900&auto=format&fit=crop';
+  }
+  if (lower.includes('perfume') || lower.includes('essence') || lower.includes('cologne')) {
+    return 'https://images.unsplash.com/photo-1612815154859-04f58d9a1fb4?q=80&w=900&auto=format&fit=crop';
+  }
+  if (lower.includes('cream') || lower.includes('moisturizer') || lower.includes('moisturiser')) {
+    return 'https://images.unsplash.com/photo-1601049313729-4726f814104b?q=80&w=900&auto=format&fit=crop';
+  }
+  if (lower.includes('beard') || lower.includes('shaving')) {
+    return 'https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=900&auto=format&fit=crop';
+  }
+  return 'https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?q=80&w=900&auto=format&fit=crop';
+};
+
 const mapDbProductToStoreProduct = (row: ProductRowWithImages): Product => {
   const images = row.product_images ?? [];
   const sortedImages = [...images].sort((a, b) => {
@@ -38,13 +58,11 @@ const mapDbProductToStoreProduct = (row: ProductRowWithImages): Product => {
   });
 
   const primaryImage = sortedImages[0];
-  const fallbackImage =
-    'https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?q=80&w=800&auto=format&fit=crop';
 
   const imageUrl = primaryImage
     ? supabase.storage.from(PRODUCT_IMAGES_BUCKET).getPublicUrl(primaryImage.storage_path).data
         .publicUrl
-    : fallbackImage;
+    : getFallbackImageForProduct(row.name);
 
   return {
     id: row.id,
@@ -155,9 +173,11 @@ export const Header: React.FC = () => {
 
   const activeColor = category === 'her' ? 'text-theme-pink' : 'text-theme-teal';
   const activeBg = category === 'her' ? 'bg-theme-pink' : 'bg-theme-teal';
+  const isAdminRoute = location.pathname.startsWith('/admin');
   const hideCategoryToggle =
-    location.pathname.startsWith('/admin') ||
+    isAdminRoute ||
     location.pathname.startsWith('/product') ||
+    location.pathname.startsWith('/about') ||
     location.pathname.startsWith('/contact') ||
     location.pathname.startsWith('/cart') ||
     location.pathname.startsWith('/checkout');
@@ -214,81 +234,87 @@ export const Header: React.FC = () => {
 
         {/* Right: Search + Icons */}
         <div className="flex-1 flex justify-end items-center gap-4">
-          {/* Search Bar (Compact) */}
-          <div className="hidden md:block relative w-64" ref={searchRef}>
-            <input
-              type="text"
-              placeholder="Search..."
-              value={searchQuery}
-              onChange={handleSearchChange}
-              onFocus={() => setIsSearchOpen(true)}
-              className={`w-full pl-9 pr-8 py-2 rounded-full border border-gray-200 focus:outline-none focus:ring-1 bg-gray-50 text-sm transition-all focus:border-gray-300`}
-            />
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            {searchQuery && (
-              <button 
-                onClick={() => { setSearchQuery(''); setIsSearchOpen(false); }}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
-
-            {/* Search Dropdown Results */}
-            {isSearchOpen && searchQuery && (
-              <div className="absolute top-full right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden max-h-96 overflow-y-auto z-50">
-                {productsError && (
-                  <div className="p-3 text-xs text-red-500 border-b border-gray-100">
-                    {productsError}
-                  </div>
+          {isAdminRoute ? (
+            <div className="flex items-center space-x-4" />
+          ) : (
+            <>
+              {/* Search Bar (Compact) */}
+              <div className="hidden md:block relative w-64" ref={searchRef}>
+                <input
+                  type="text"
+                  placeholder="Search..."
+                  value={searchQuery}
+                  onChange={handleSearchChange}
+                  onFocus={() => setIsSearchOpen(true)}
+                  className="w-full pl-9 pr-8 py-2 rounded-full border border-gray-200 focus:outline-none focus:ring-1 bg-gray-50 text-sm transition-all focus:border-gray-300"
+                />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                {searchQuery && (
+                  <button 
+                    onClick={() => { setSearchQuery(''); setIsSearchOpen(false); }}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
                 )}
-                {filteredProducts.length > 0 ? (
-                  <div>
-                    <div className="px-4 py-2 bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      Products
-                    </div>
-                    {filteredProducts.map(product => (
-                      <Link 
-                        key={product.id} 
-                        to={`/product/${product.id}`}
-                        onClick={() => setIsSearchOpen(false)}
-                        className="flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0"
-                      >
-                        <img src={product.image} alt={product.name} className="w-10 h-10 object-cover rounded-md" />
-                        <div>
-                          <h4 className="text-sm font-medium text-accent">{product.name}</h4>
-                          <p className="text-xs text-gray-500">KSh {product.price.toLocaleString()}</p>
+
+                {/* Search Dropdown Results */}
+                {isSearchOpen && searchQuery && (
+                  <div className="absolute top-full right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden max-h-96 overflow-y-auto z-50">
+                    {productsError && (
+                      <div className="p-3 text-xs text-red-500 border-b border-gray-100">
+                        {productsError}
+                      </div>
+                    )}
+                    {filteredProducts.length > 0 ? (
+                      <div>
+                        <div className="px-4 py-2 bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                          Products
                         </div>
-                      </Link>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="p-4 text-center text-gray-500 text-sm">
-                    No products found.
+                        {filteredProducts.map(product => (
+                          <Link 
+                            key={product.id} 
+                            to={`/product/${product.id}`}
+                            onClick={() => setIsSearchOpen(false)}
+                            className="flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0"
+                          >
+                            <img src={product.image} alt={product.name} className="w-10 h-10 object-cover rounded-md" />
+                            <div>
+                              <h4 className="text-sm font-medium text-accent">{product.name}</h4>
+                              <p className="text-xs text-gray-500">KSh {product.price.toLocaleString()}</p>
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="p-4 text-center text-gray-500 text-sm">
+                        No products found.
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
-            )}
-          </div>
 
-          {/* Icons */}
-          <div className="flex items-center space-x-4">
-            <button 
-              className="md:hidden text-accent hover:text-gray-800 transition-colors"
-              onClick={() => setIsSearchOpen(!isSearchOpen)}
-            >
-              <Search className="w-6 h-6" />
-            </button>
-            
-            <Link to="/cart" className={`relative text-accent hover:${activeColor} transition-colors group`}>
-              <ShoppingBag className={`w-6 h-6 transition-transform duration-300 ${isBumped ? 'scale-125 text-amber-500' : ''}`} />
-              {totalItems > 0 && (
-                <span className={`absolute -top-2 -right-2 ${activeBg} text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full shadow-sm ${isBumped ? 'animate-bounce' : ''} group-hover:scale-110 transition-transform`}>
-                  {totalItems}
-                </span>
-              )}
-            </Link>
-          </div>
+              {/* Icons */}
+              <div className="flex items-center space-x-4">
+                <button 
+                  className="md:hidden text-accent hover:text-gray-800 transition-colors"
+                  onClick={() => setIsSearchOpen(!isSearchOpen)}
+                >
+                  <Search className="w-6 h-6" />
+                </button>
+                
+                <Link to="/cart" className={`relative text-accent hover:${activeColor} transition-colors group`}>
+                  <ShoppingBag className={`w-6 h-6 transition-transform duration-300 ${isBumped ? 'scale-125 text-amber-500' : ''}`} />
+                  {totalItems > 0 && (
+                    <span className={`absolute -top-2 -right-2 ${activeBg} text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full shadow-sm ${isBumped ? 'animate-bounce' : ''} group-hover:scale-110 transition-transform`}>
+                      {totalItems}
+                    </span>
+                  )}
+                </Link>
+              </div>
+            </>
+          )}
         </div>
       </div>
       
@@ -320,7 +346,7 @@ export const Header: React.FC = () => {
       )}
 
       {/* Mobile Search Overlay */}
-      {isSearchOpen && (
+      {!isAdminRoute && isSearchOpen && (
         <div className="md:hidden absolute top-full left-0 right-0 bg-white p-4 border-b border-gray-100 shadow-lg z-40">
            <div className="relative">
             <input

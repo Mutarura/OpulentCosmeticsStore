@@ -7,10 +7,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { cartItems, customerInfo, deliveryZoneId, deliveryAddress } = req.body;
+  const { cartItems, customerInfo, deliveryType = 'delivery', deliveryZoneId, deliveryAddress } = req.body;
 
-  if (!cartItems || cartItems.length === 0 || !customerInfo || !deliveryZoneId) {
+  if (!cartItems || cartItems.length === 0 || !customerInfo) {
     return res.status(400).json({ error: 'Missing required fields' });
+  }
+
+  if (deliveryType === 'delivery' && !deliveryZoneId) {
+    return res.status(400).json({ error: 'Delivery zone is required for delivery orders' });
+  }
+
+  if (deliveryType !== 'delivery' && deliveryType !== 'pickup') {
+    return res.status(400).json({ error: 'Invalid delivery type' });
   }
 
   try {
@@ -57,18 +65,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    // 2. Fetch Delivery Price
-    const { data: zoneData, error: zoneError } = await supabaseAdmin
-      .from('delivery_zones')
-      .select('name, fee')
-      .eq('id', deliveryZoneId)
-      .single();
+    const isDelivery = deliveryType === 'delivery';
 
-    if (zoneError || !zoneData) {
-      return res.status(400).json({ error: 'Invalid delivery zone' });
+    let deliveryFee = 0;
+    let deliveryArea = '';
+    let zoneIdToStore: string | null = null;
+    let addressToStore: string | null = null;
+
+    if (isDelivery) {
+      const { data: zoneData, error: zoneError } = await supabaseAdmin
+        .from('delivery_zones')
+        .select('name, fee')
+        .eq('id', deliveryZoneId)
+        .single();
+
+      if (zoneError || !zoneData) {
+        return res.status(400).json({ error: 'Invalid delivery zone' });
+      }
+
+      deliveryFee = Number(zoneData.fee);
+      deliveryArea = zoneData.name;
+      zoneIdToStore = deliveryZoneId;
+      addressToStore = deliveryAddress ?? null;
+    } else {
+      deliveryFee = 0;
+      deliveryArea = 'Pickup - Two Rivers Mall';
+      zoneIdToStore = null;
+      addressToStore = null;
     }
 
-    const deliveryFee = Number(zoneData.fee);
     const totalAmount = subtotal + deliveryFee;
     
     // Generate Merchant Reference
@@ -81,11 +106,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         customer_name: `${customerInfo.firstName} ${customerInfo.lastName}`,
         email: customerInfo.email,
         phone: customerInfo.phone,
-        delivery_type: 'delivery',
-        delivery_zone_id: deliveryZoneId,
-        delivery_area: zoneData.name,
+        delivery_type: deliveryType,
+        delivery_zone_id: zoneIdToStore,
+        delivery_area: deliveryArea,
         delivery_fee: deliveryFee,
-        delivery_address: deliveryAddress,
+        delivery_address: addressToStore,
         status: 'Pending',
         subtotal_amount: subtotal,
         total_amount: totalAmount,
@@ -115,12 +140,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // 5. Initialize Pesapal Payment
     const token = await getPesapalToken();
-    const callbackUrl = `${req.headers.origin || 'http://localhost:5173'}/cart?status=completed`;
+    const callbackUrl = `${req.headers.origin || 'https://opulent-cosmetics-store.vercel.app/'}?status=completed`;
     const ipnId = process.env.PESAPAL_IPN_ID;
 
     if (!ipnId) {
         throw new Error('PESAPAL_IPN_ID is not configured');
     }
+
+    const billingLine1 = isDelivery
+      ? (deliveryAddress || '')
+      : 'Pickup from Two Rivers Mall';
+
+    const billingLine2 = isDelivery ? deliveryArea : 'Two Rivers Mall, Nairobi';
 
     const orderDetails = {
         id: merchantRef,
@@ -136,8 +167,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             first_name: customerInfo.firstName,
             middle_name: '',
             last_name: customerInfo.lastName,
-            line_1: deliveryAddress,
-            line_2: zoneData.name,
+            line_1: billingLine1,
+            line_2: billingLine2,
             city: '',
             state: '',
             postal_code: '',

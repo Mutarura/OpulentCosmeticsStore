@@ -32,7 +32,7 @@ export const Footer: React.FC = () => {
           <div>
             <h4 className="font-serif font-semibold text-accent mb-6">Quick Links</h4>
             <ul className="space-y-3 text-sm text-gray-500">
-              <li><Link to="/" className={`transition-colors ${hoverColor}`}>About Us</Link></li>
+              <li><Link to="/about" className={`transition-colors ${hoverColor}`}>About Us</Link></li>
               <li><Link to="/" className={`transition-colors ${hoverColor}`}>For Her Collection</Link></li>
               <li><Link to="/" className={`transition-colors ${hoverColor}`}>For Him Collection</Link></li>
               <li><Link to="/contact" className={`transition-colors ${hoverColor}`}>Enquiry</Link></li>
@@ -45,11 +45,11 @@ export const Footer: React.FC = () => {
             <ul className="space-y-4 text-sm text-gray-500">
               <li className="flex items-center gap-3">
                 <MapPin className="w-4 h-4 shrink-0" />
-                <span>Nairobi, Kenya</span>
+                <span>Two Rivers Mall, Nairobi</span>
               </li>
               <li className="flex items-center gap-3">
                 <Phone className="w-4 h-4 shrink-0" />
-                <span>+254 700 000 000</span>
+                <span>0773 198 364</span>
               </li>
               <li className="flex items-center gap-3">
                 <Mail className="w-4 h-4 shrink-0" />
@@ -57,7 +57,7 @@ export const Footer: React.FC = () => {
               </li>
               <li className="pt-2">
                 <a 
-                  href="https://wa.me/254700000000" 
+                  href="https://wa.me/254773198364" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className={`inline-flex items-center gap-2 font-medium transition-colors ${category === 'her' ? 'text-theme-pink hover:text-pink-700' : 'text-theme-teal hover:text-teal-700'}`}

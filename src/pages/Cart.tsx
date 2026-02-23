@@ -31,7 +31,7 @@ export const Cart: React.FC = () => {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center p-4">
         <h2 className="text-3xl font-serif font-bold text-accent mb-4">Your Cart is Empty</h2>
-        <p className="text-gray-500 mb-8">Looks like you haven't added anything yet.</p>
+        <p className="text-gray-700 mb-8">Looks like you haven't added anything yet.</p>
         <Link to="/" className="px-8 py-3 bg-accent text-white rounded-full hover:bg-gray-800 transition-colors">
           Start Shopping
         </Link>
@@ -59,7 +59,7 @@ export const Cart: React.FC = () => {
                       <Link to={`/product/${item.id}`} className={`font-serif font-medium text-lg ${item.category === 'Her' ? 'text-theme-pink' : 'text-theme-teal'} hover:text-secondary transition-colors`}>
                         {item.name}
                       </Link>
-                      <p className="text-sm text-gray-400 mt-1">{item.category === 'Her' ? 'For Her' : 'For Him'}</p>
+                      <p className="text-sm text-gray-600 mt-1">{item.category === 'Her' ? 'For Her' : 'For Him'}</p>
                     </div>
                     <button 
                       onClick={() => removeFromCart(item.id)}
@@ -102,19 +102,19 @@ export const Cart: React.FC = () => {
               <h3 className="font-serif font-bold text-xl text-accent mb-6">Order Summary</h3>
               
               <div className="space-y-4 mb-8">
-                <div className="flex justify-between text-gray-500">
+                <div className="flex justify-between text-gray-800 text-sm">
                   <span>Subtotal</span>
                   <span>KSh {totalPrice.toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between text-gray-500">
+                <div className="flex justify-between text-gray-800 text-sm">
                   <span>Shipping</span>
                   <span>Calculated at checkout</span>
                 </div>
-                <div className="flex justify-between text-gray-500">
+                <div className="flex justify-between text-gray-800 text-sm">
                   <span>Tax</span>
                   <span>Calculated at checkout</span>
                 </div>
-                <div className="border-t border-gray-200 pt-4 flex justify-between font-bold text-lg text-accent">
+                <div className="border-t border-gray-200 pt-4 flex justify-between font-semibold text-lg text-accent">
                   <span>Total</span>
                   <span>KSh {totalPrice.toLocaleString()}</span>
                 </div>

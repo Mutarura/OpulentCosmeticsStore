@@ -26,6 +26,26 @@ type ProductRowWithImages = {
 
 const PRODUCT_IMAGES_BUCKET = 'product-images';
 
+const getFallbackImageForProduct = (name: string) => {
+  const lower = name.toLowerCase();
+  if (lower.includes('lipstick') || lower.includes('velvet')) {
+    return 'https://images.unsplash.com/photo-1586495777744-4413f21062fa?q=80&w=900&auto=format&fit=crop';
+  }
+  if (lower.includes('serum') || lower.includes('radiance')) {
+    return 'https://images.unsplash.com/photo-1612815154858-60aa4c59eaa5?q=80&w=900&auto=format&fit=crop';
+  }
+  if (lower.includes('perfume') || lower.includes('essence') || lower.includes('cologne')) {
+    return 'https://images.unsplash.com/photo-1612815154859-04f58d9a1fb4?q=80&w=900&auto=format&fit=crop';
+  }
+  if (lower.includes('cream') || lower.includes('moisturizer') || lower.includes('moisturiser')) {
+    return 'https://images.unsplash.com/photo-1601049313729-4726f814104b?q=80&w=900&auto=format&fit=crop';
+  }
+  if (lower.includes('beard') || lower.includes('shaving')) {
+    return 'https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=900&auto=format&fit=crop';
+  }
+  return 'https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?q=80&w=900&auto=format&fit=crop';
+};
+
 const mapDbProductToStoreProduct = (row: ProductRowWithImages): Product => {
   const images = row.product_images ?? [];
   const sortedImages = [...images].sort((a, b) => {
@@ -40,13 +60,11 @@ const mapDbProductToStoreProduct = (row: ProductRowWithImages): Product => {
   });
 
   const primaryImage = sortedImages[0];
-  const fallbackImage =
-    'https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?q=80&w=800&auto=format&fit=crop';
 
   const imageUrl = primaryImage
     ? supabase.storage.from(PRODUCT_IMAGES_BUCKET).getPublicUrl(primaryImage.storage_path).data
         .publicUrl
-    : fallbackImage;
+    : getFallbackImageForProduct(row.name);
 
   return {
     id: row.id,
