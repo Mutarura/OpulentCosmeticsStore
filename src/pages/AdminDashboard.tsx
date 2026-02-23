@@ -850,6 +850,13 @@ const InventorySection: React.FC = () => {
     setLoading(false);
   };
 
+  useEffect(() => {
+    const fetchData = async () => {
+      await loadInventory();
+    };
+    fetchData();
+  }, []);
+
   const resetForm = () => {
     setEditingId(null);
     setForm({
