@@ -23,7 +23,7 @@ export const Footer: React.FC = () => {
               </p>
             </div>
             <p className="font-serif font-semibold text-accent mt-4">Follow Us</p>
-            <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className={`inline-block text-gray-400 transition-colors ${hoverColor}`}>
+            <a href="https://www.instagram.com/opulentcosmetics_ke/?hl=en" target="_blank" rel="noopener noreferrer" className={`inline-block text-gray-400 transition-colors ${hoverColor}`}>
               <Instagram className="w-6 h-6" />
             </a>
           </div>
