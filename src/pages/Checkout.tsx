@@ -381,7 +381,7 @@ export const Checkout: React.FC = () => {
                 </div>
                 <div className="flex justify-between text-sm text-gray-800">
                   <span>Shipping</span>
-                  <span>{selectedZone ? `KSh ${selectedZone.fee}` : '--'}</span>
+                  <span>{isDelivery && selectedZone ? `KSh ${selectedZone.fee}` : '--'}</span>
                 </div>
                 <div className="flex justify-between text-lg font-semibold text-accent pt-2 border-t border-gray-100">
                   <span>Total</span>

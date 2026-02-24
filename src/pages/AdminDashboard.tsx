@@ -1247,6 +1247,13 @@ const OrdersSection: React.FC = () => {
   }, []);
 
   const handleStatusChange = async (id: string, status: OrderStatus) => {
+    // If the new status is a final state, ask for confirmation
+    if (status === 'Delivered' || status === 'Cancelled') {
+      if (!window.confirm(`Are you sure you want to mark this order as ${status}? This action cannot be undone.`)) {
+        return;
+      }
+    }
+
     setSavingId(id);
     setError(null);
     const { error: updateError } = await supabase
@@ -1347,8 +1354,10 @@ const OrdersSection: React.FC = () => {
                     onChange={event =>
                       handleStatusChange(order.id, event.target.value as OrderStatus)
                     }
-                    disabled={savingId === order.id}
-                    className="rounded-full border border-gray-200 px-2 py-1 text-[11px] focus:outline-none focus:ring-1 focus:ring-accent bg-white"
+                    disabled={savingId === order.id || order.status === 'Delivered' || order.status === 'Cancelled'}
+                    className={`rounded-full border border-gray-200 px-2 py-1 text-[11px] focus:outline-none focus:ring-1 focus:ring-accent bg-white ${
+                      order.status === 'Delivered' || order.status === 'Cancelled' ? 'opacity-75 cursor-not-allowed bg-gray-50' : ''
+                    }`}
                   >
                     <option value="Pending">Pending</option>
                     <option value="Paid">Paid</option>
