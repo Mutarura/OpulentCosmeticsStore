@@ -26,6 +26,15 @@ const PRODUCT_IMAGES_BUCKET = 'product-images';
 
 const getFallbackImageForProduct = (name: string) => {
   const lower = name.toLowerCase();
+  if (lower.includes('set') || lower.includes('kit') || lower.includes('bundle')) {
+    return 'https://images.unsplash.com/photo-1611930022073-b7a4ba5fcccd?q=80&w=900&auto=format&fit=crop';
+  }
+  if (lower.includes('body') || lower.includes('polish') || lower.includes('scrub') || lower.includes('bath')) {
+    return 'https://images.unsplash.com/photo-1612815154858-60aa4c59eaa5?q=80&w=900&auto=format&fit=crop';
+  }
+  if (lower.includes('mist') || lower.includes('spray')) {
+    return 'https://images.unsplash.com/photo-1541643600914-78b084683601?q=80&w=900&auto=format&fit=crop';
+  }
   if (lower.includes('lipstick') || lower.includes('velvet')) {
     return 'https://images.unsplash.com/photo-1586495777744-4413f21062fa?q=80&w=900&auto=format&fit=crop';
   }
@@ -67,7 +76,30 @@ const mapDbProductToStoreProduct = (row: ProductRowWithImages): Product => {
   return {
     id: row.id,
     name: row.name,
-    price: Number(row.discount_price ?? row.price),
+    price: (() => {
+      const base = Number(row.price);
+      const discount = row.discount_price != null ? Number(row.discount_price) : null;
+      if (discount != null && discount > 0 && discount < base) {
+        return discount;
+      }
+      return base;
+    })(),
+    originalPrice: (() => {
+      const base = Number(row.price);
+      const discount = row.discount_price != null ? Number(row.discount_price) : null;
+      if (discount != null && discount > 0 && discount < base) {
+        return base;
+      }
+      return undefined;
+    })(),
+    discountPercent: (() => {
+      const base = Number(row.price);
+      const discount = row.discount_price != null ? Number(row.discount_price) : null;
+      if (discount != null && discount > 0 && discount < base) {
+        return Math.round((1 - discount / base) * 100);
+      }
+      return undefined;
+    })(),
     description: '',
     category: row.category === 'hers' ? 'Her' : 'Him',
     image: imageUrl,

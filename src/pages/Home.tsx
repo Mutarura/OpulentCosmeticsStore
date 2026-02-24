@@ -1,4 +1,4 @@
-import React, { useEffect, useReducer, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { HeroCarousel } from '../components/HeroCarousel';
 import { ProductCard } from '../components/ProductCard';
 import { StorePromise } from '../components/StorePromise';
@@ -27,6 +27,15 @@ const PRODUCT_IMAGES_BUCKET = 'product-images';
 
 const getFallbackImageForProduct = (name: string) => {
   const lower = name.toLowerCase();
+  if (lower.includes('set') || lower.includes('kit') || lower.includes('bundle')) {
+    return 'https://images.unsplash.com/photo-1611930022073-b7a4ba5fcccd?q=80&w=900&auto=format&fit=crop';
+  }
+  if (lower.includes('body') || lower.includes('polish') || lower.includes('scrub') || lower.includes('bath')) {
+    return 'https://images.unsplash.com/photo-1612815154858-60aa4c59eaa5?q=80&w=900&auto=format&fit=crop';
+  }
+  if (lower.includes('mist') || lower.includes('spray')) {
+    return 'https://images.unsplash.com/photo-1541643600914-78b084683601?q=80&w=900&auto=format&fit=crop';
+  }
   if (lower.includes('lipstick') || lower.includes('velvet')) {
     return 'https://images.unsplash.com/photo-1586495777744-4413f21062fa?q=80&w=900&auto=format&fit=crop';
   }
@@ -68,7 +77,30 @@ const mapDbProductToStoreProduct = (row: ProductRowWithImages): Product => {
   return {
     id: row.id,
     name: row.name,
-    price: Number(row.discount_price ?? row.price),
+    price: (() => {
+      const base = Number(row.price);
+      const discount = row.discount_price != null ? Number(row.discount_price) : null;
+      if (discount != null && discount > 0 && discount < base) {
+        return discount;
+      }
+      return base;
+    })(),
+    originalPrice: (() => {
+      const base = Number(row.price);
+      const discount = row.discount_price != null ? Number(row.discount_price) : null;
+      if (discount != null && discount > 0 && discount < base) {
+        return base;
+      }
+      return undefined;
+    })(),
+    discountPercent: (() => {
+      const base = Number(row.price);
+      const discount = row.discount_price != null ? Number(row.discount_price) : null;
+      if (discount != null && discount > 0 && discount < base) {
+        return Math.round((1 - discount / base) * 100);
+      }
+      return undefined;
+    })(),
     description: '',
     category: row.category === 'hers' ? 'Her' : 'Him',
     image: imageUrl,
@@ -79,35 +111,10 @@ const mapDbProductToStoreProduct = (row: ProductRowWithImages): Product => {
 export const Home: React.FC = () => {
   const { searchQuery } = useSearch();
   const { category } = useCategory();
-   const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [visibleState, dispatchVisible] = useReducer(
-    (
-      state: { key: string; value: number },
-      action:
-        | { type: 'reset'; key: string }
-        | { type: 'loadMore'; amount: number }
-    ) => {
-      if (action.type === 'reset') {
-        if (state.key === action.key) {
-          return state;
-        }
-        return { key: action.key, value: 8 };
-      }
-      if (action.type === 'loadMore') {
-        return { ...state, value: state.value + action.amount };
-      }
-      return state;
-    },
-    { key: `${category}-${searchQuery}`, value: 8 }
-  );
-
-  const filterKey = `${category}-${searchQuery}`;
-
-  useEffect(() => {
-    dispatchVisible({ type: 'reset', key: filterKey });
-  }, [filterKey]);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -165,6 +172,18 @@ export const Home: React.FC = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const normalizedCategory = category === 'her' ? 'Her' : 'Him';
 
   const filteredProducts = products.filter(product => {
@@ -176,14 +195,9 @@ export const Home: React.FC = () => {
       product.description.toLowerCase().includes(query);
     return matchesCategory && matchesSearch;
   });
-
-  const visibleCount = visibleState.value;
-  const visibleProducts = filteredProducts.slice(0, visibleCount);
-  const hasMoreProducts = visibleCount < filteredProducts.length;
-
-  const handleLoadMore = () => {
-    dispatchVisible({ type: 'loadMore', amount: 8 });
-  };
+  const maxVisible = searchQuery.length > 0 ? filteredProducts.length : isMobile ? 4 : 8;
+  const visibleProducts = filteredProducts.slice(0, maxVisible);
+  const hasMoreProducts = filteredProducts.length > maxVisible && searchQuery.length === 0;
 
   return (
     <div className="min-h-screen pb-0 bg-white">
@@ -224,16 +238,16 @@ export const Home: React.FC = () => {
 
             {hasMoreProducts && (
               <div className="mt-12 text-center animate-fade-in-up">
-                <button 
-                  onClick={handleLoadMore}
-                  className={`px-8 py-3 rounded-full text-white font-medium shadow-md transition-all hover:scale-105 hover:shadow-lg ${
-                    category === 'her' 
-                      ? 'bg-theme-pink hover:bg-pink-600' 
+                <Link
+                  to={`/products/${category === 'her' ? 'her' : 'him'}`}
+                  className={`inline-block px-8 py-3 rounded-full text-white font-medium shadow-md transition-all hover:scale-105 hover:shadow-lg ${
+                    category === 'her'
+                      ? 'bg-theme-pink hover:bg-pink-600'
                       : 'bg-theme-teal hover:bg-teal-600'
                   }`}
                 >
-                  Load More Products
-                </button>
+                  See Full Collection
+                </Link>
               </div>
             )}
           </>

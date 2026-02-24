@@ -88,3 +88,43 @@ WHERE NOT EXISTS (SELECT 1 FROM public.products WHERE name = 'Ocean Breeze Colog
 INSERT INTO public.products (name, category, subcategory, price, discount_price, sizes, active, description, is_bundle)
 SELECT 'Shaving Cream Kit', 'his', 'Grooming', 5200, NULL::numeric(10,2), ARRAY['Kit'], true, 'Luxury shaving kit including brush, cream, and razor.', true
 WHERE NOT EXISTS (SELECT 1 FROM public.products WHERE name = 'Shaving Cream Kit');
+
+INSERT INTO public.products (name, category, subcategory, price, discount_price, sizes, active, description, is_bundle)
+SELECT 'Weekend Glow Skincare Set', 'hers', 'Skincare', 9800, 8200, ARRAY['Set'], true, 'Curated weekend routine with cleanser, serum, and night cream.', true
+WHERE NOT EXISTS (SELECT 1 FROM public.products WHERE name = 'Weekend Glow Skincare Set');
+
+INSERT INTO public.products (name, category, subcategory, price, discount_price, sizes, active, description, is_bundle)
+SELECT 'Rose & Oud Discovery Set', 'hers', 'Perfumes', 12500, 10500, ARRAY['Set'], true, 'Miniature fragrances layering rose, oud, and vanilla.', true
+WHERE NOT EXISTS (SELECT 1 FROM public.products WHERE name = 'Rose & Oud Discovery Set');
+
+INSERT INTO public.products (name, category, subcategory, price, discount_price, sizes, active, description, is_bundle)
+SELECT 'Citrus Body Polish', 'hers', 'Body Essentials', 3800, NULL::numeric(10,2), ARRAY['250g'], true, 'Brightening sugar scrub with citrus oils for smooth, glowing skin.', false
+WHERE NOT EXISTS (SELECT 1 FROM public.products WHERE name = 'Citrus Body Polish');
+
+INSERT INTO public.products (name, category, subcategory, price, discount_price, sizes, active, description, is_bundle)
+SELECT 'Midnight Peony Hair Mist', 'hers', 'Body Essentials', 4200, 3650, ARRAY['100ml'], true, 'Lightweight hair mist with peony and musk notes for evening wear.', false
+WHERE NOT EXISTS (SELECT 1 FROM public.products WHERE name = 'Midnight Peony Hair Mist');
+
+INSERT INTO public.products (name, category, subcategory, price, discount_price, sizes, active, description, is_bundle)
+SELECT 'Soft Matte Lip Trio', 'hers', 'Makeup', 5600, 4800, ARRAY['Set'], true, 'Trio of soft matte liquid lipsticks in everyday nude tones.', false
+WHERE NOT EXISTS (SELECT 1 FROM public.products WHERE name = 'Soft Matte Lip Trio');
+
+INSERT INTO public.products (name, category, subcategory, price, discount_price, sizes, active, description, is_bundle)
+SELECT 'Daily Grooming Essentials Kit', 'his', 'Grooming', 9900, 8400, ARRAY['Kit'], true, 'All-in-one kit with face wash, moisturizer, and beard oil.', true
+WHERE NOT EXISTS (SELECT 1 FROM public.products WHERE name = 'Daily Grooming Essentials Kit');
+
+INSERT INTO public.products (name, category, subcategory, price, discount_price, sizes, active, description, is_bundle)
+SELECT 'City Nights Fragrance Set', 'his', 'Fragrance', 13200, 11200, ARRAY['Set'], true, 'Two-piece evening fragrance set with warm amber and woods.', true
+WHERE NOT EXISTS (SELECT 1 FROM public.products WHERE name = 'City Nights Fragrance Set');
+
+INSERT INTO public.products (name, category, subcategory, price, discount_price, sizes, active, description, is_bundle)
+SELECT 'Cooling Post-Shave Gel', 'his', 'Grooming', 3200, NULL::numeric(10,2), ARRAY['100ml'], true, 'Alcohol-free gel that cools and soothes skin after shaving.', false
+WHERE NOT EXISTS (SELECT 1 FROM public.products WHERE name = 'Cooling Post-Shave Gel');
+
+INSERT INTO public.products (name, category, subcategory, price, discount_price, sizes, active, description, is_bundle)
+SELECT 'Charcoal Body Bar Trio', 'his', 'Body Essentials', 3900, 3400, ARRAY['Set'], true, 'Set of three detoxifying charcoal body bars for daily use.', false
+WHERE NOT EXISTS (SELECT 1 FROM public.products WHERE name = 'Charcoal Body Bar Trio');
+
+INSERT INTO public.products (name, category, subcategory, price, discount_price, sizes, active, description, is_bundle)
+SELECT 'Sport Refresh Body Mist', 'his', 'Body Essentials', 4500, NULL::numeric(10,2), ARRAY['150ml'], true, 'Invigorating all-over body mist for post-workout freshness.', false
+WHERE NOT EXISTS (SELECT 1 FROM public.products WHERE name = 'Sport Refresh Body Mist');

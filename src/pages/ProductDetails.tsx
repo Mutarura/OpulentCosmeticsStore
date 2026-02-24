@@ -28,6 +28,15 @@ const PRODUCT_IMAGES_BUCKET = 'product-images';
 
 const getFallbackImageForProduct = (name: string) => {
   const lower = name.toLowerCase();
+  if (lower.includes('set') || lower.includes('kit') || lower.includes('bundle')) {
+    return 'https://images.unsplash.com/photo-1611930022073-b7a4ba5fcccd?q=80&w=900&auto=format&fit=crop';
+  }
+  if (lower.includes('body') || lower.includes('polish') || lower.includes('scrub') || lower.includes('bath')) {
+    return 'https://images.unsplash.com/photo-1612815154858-60aa4c59eaa5?q=80&w=900&auto=format&fit=crop';
+  }
+  if (lower.includes('mist') || lower.includes('spray')) {
+    return 'https://images.unsplash.com/photo-1541643600914-78b084683601?q=80&w=900&auto=format&fit=crop';
+  }
   if (lower.includes('lipstick') || lower.includes('velvet')) {
     return 'https://images.unsplash.com/photo-1586495777744-4413f21062fa?q=80&w=900&auto=format&fit=crop';
   }
@@ -69,7 +78,30 @@ const mapDbProductToStoreProduct = (row: ProductRowWithImages): Product => {
   return {
     id: row.id,
     name: row.name,
-    price: Number(row.discount_price ?? row.price),
+    price: (() => {
+      const base = Number(row.price);
+      const discount = row.discount_price != null ? Number(row.discount_price) : null;
+      if (discount != null && discount > 0 && discount < base) {
+        return discount;
+      }
+      return base;
+    })(),
+    originalPrice: (() => {
+      const base = Number(row.price);
+      const discount = row.discount_price != null ? Number(row.discount_price) : null;
+      if (discount != null && discount > 0 && discount < base) {
+        return base;
+      }
+      return undefined;
+    })(),
+    discountPercent: (() => {
+      const base = Number(row.price);
+      const discount = row.discount_price != null ? Number(row.discount_price) : null;
+      if (discount != null && discount > 0 && discount < base) {
+        return Math.round((1 - discount / base) * 100);
+      }
+      return undefined;
+    })(),
     description: row.description ?? '',
     category: row.category === 'hers' ? 'Her' : 'Him',
     image: imageUrl,
@@ -250,9 +282,27 @@ export const ProductDetails: React.FC = () => {
             </div>
 
             <h1 className="text-4xl font-serif font-bold text-accent mb-4">{product.name}</h1>
-            <p className="text-2xl text-secondary font-medium mb-6">
-              KSh {product.price.toLocaleString()}
-            </p>
+            <div className="flex items-baseline gap-3 mb-6">
+              {product.originalPrice && product.originalPrice > product.price ? (
+                <>
+                  <span className="text-base text-gray-400 line-through">
+                    KSh {product.originalPrice.toLocaleString()}
+                  </span>
+                  <span className="text-3xl text-accent font-semibold">
+                    KSh {product.price.toLocaleString()}
+                  </span>
+                  {product.discountPercent && (
+                    <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full">
+                      -{product.discountPercent}%
+                    </span>
+                  )}
+                </>
+              ) : (
+                <span className="text-3xl text-accent font-semibold">
+                  KSh {product.price.toLocaleString()}
+                </span>
+              )}
+            </div>
             
             <p className="text-gray-500 leading-relaxed mb-8">
               {product.description || 'No description available.'}

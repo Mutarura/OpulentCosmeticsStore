@@ -77,7 +77,25 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         <p className="text-sm text-gray-500 line-clamp-2 mb-4 flex-grow">{product.description}</p>
         
         <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-50">
-          <span className="font-bold text-lg text-gray-900">KSh {product.price.toLocaleString()}</span>
+          {product.originalPrice && product.originalPrice > product.price ? (
+            <div className="flex items-baseline gap-2">
+              <span className="text-sm text-gray-400 line-through">
+                KSh {product.originalPrice.toLocaleString()}
+              </span>
+              <span className="font-bold text-lg text-accent">
+                KSh {product.price.toLocaleString()}
+              </span>
+              {product.discountPercent && (
+                <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                  -{product.discountPercent}%
+                </span>
+              )}
+            </div>
+          ) : (
+            <span className="font-bold text-lg text-accent">
+              KSh {product.price.toLocaleString()}
+            </span>
+          )}
         </div>
 
         <button 

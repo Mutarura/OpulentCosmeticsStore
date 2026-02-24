@@ -268,6 +268,8 @@ const ProductsSection: React.FC = () => {
     subcategory: 'Skincare',
     price: '',
     discount_price: '',
+    discount_percent: '',
+    discount_mode: 'amount' as 'amount' | 'percent',
     sizesInput: '',
     active: true,
     description: '',
@@ -322,6 +324,8 @@ const ProductsSection: React.FC = () => {
       subcategory: 'Skincare',
       price: '',
       discount_price: '',
+      discount_percent: '',
+      discount_mode: 'amount',
       sizesInput: '',
       active: true,
       description: '',
@@ -332,15 +336,24 @@ const ProductsSection: React.FC = () => {
 
   const handleEdit = async (row: ProductRow) => {
     setEditingId(row.id);
+    const hasDiscount =
+      row.discount_price != null && row.discount_price !== 0 && row.discount_price < row.price;
+    const percent =
+      hasDiscount && row.price
+        ? Math.round((1 - Number(row.discount_price) / Number(row.price)) * 100)
+        : undefined;
+
     setForm({
       name: row.name,
       category: row.category,
       subcategory: row.subcategory ?? 'Skincare',
       price: row.price.toString(),
-      discount_price: row.discount_price != null ? row.discount_price.toString() : '',
+      discount_price: hasDiscount && row.discount_price != null ? row.discount_price.toString() : '',
+      discount_percent: percent != null && Number.isFinite(percent) ? String(percent) : '',
+      discount_mode: 'amount',
       sizesInput: row.sizes ? row.sizes.join(', ') : '',
       active: row.active,
-      description: row.description ?? '', // Will be updated after fetch if not present
+      description: row.description ?? '',
       is_bundle: row.is_bundle ?? false,
     });
     setImageFile(null);
@@ -398,7 +411,24 @@ const ProductsSection: React.FC = () => {
     setError(null);
 
     const priceValue = Number(form.price || 0);
-    const discountValue = form.discount_price ? Number(form.discount_price) : null;
+    let discountValue: number | null = null;
+
+    if (form.discount_mode === 'amount') {
+      if (form.discount_price) {
+        const amount = Number(form.discount_price);
+        if (!Number.isNaN(amount) && amount > 0 && amount < priceValue) {
+          discountValue = amount;
+        }
+      }
+    } else if (form.discount_mode === 'percent') {
+      if (form.discount_percent) {
+        const percent = Number(form.discount_percent);
+        if (!Number.isNaN(percent) && percent > 0 && percent < 100 && priceValue > 0) {
+          const discounted = priceValue * (1 - percent / 100);
+          discountValue = Number(discounted.toFixed(2));
+        }
+      }
+    }
 
     const sizesArray = form.sizesInput
       ? form.sizesInput.split(',').map(value => value.trim()).filter(Boolean)
@@ -587,23 +617,70 @@ const ProductsSection: React.FC = () => {
                 required
               />
             </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
-                Discount Price (KSh)
-              </label>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={form.discount_price}
-                onChange={event =>
-                  setForm({
-                    ...form,
-                    discount_price: event.target.value,
-                  })
-                }
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-accent"
-              />
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <label className="block text-xs font-medium text-gray-600">
+                  Discount
+                </label>
+                <select
+                  value={form.discount_mode}
+                  onChange={event =>
+                    setForm({
+                      ...form,
+                      discount_mode: event.target.value as 'amount' | 'percent',
+                    })
+                  }
+                  className="rounded-full border border-gray-200 px-2 py-1 text-[11px] focus:outline-none focus:ring-1 focus:ring-accent bg-white"
+                >
+                  <option value="amount">KSh</option>
+                  <option value="percent">% off</option>
+                </select>
+              </div>
+              {form.discount_mode === 'amount' ? (
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={form.discount_price}
+                  onChange={event =>
+                    setForm({
+                      ...form,
+                      discount_price: event.target.value,
+                    })
+                  }
+                  placeholder="Discounted price"
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-accent"
+                />
+              ) : (
+                <div className="space-y-1">
+                  <input
+                    type="number"
+                    min="0"
+                    max="99"
+                    step="1"
+                    value={form.discount_percent}
+                    onChange={event =>
+                      setForm({
+                        ...form,
+                        discount_percent: event.target.value,
+                      })
+                    }
+                    placeholder="Discount %"
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-accent"
+                  />
+                  <p className="text-[10px] text-gray-500">
+                    {(() => {
+                      const base = Number(form.price || 0);
+                      const percent = Number(form.discount_percent || 0);
+                      if (base > 0 && percent > 0 && percent < 100) {
+                        const discounted = base * (1 - percent / 100);
+                        return `Will charge KSh ${Math.round(discounted).toLocaleString()}`;
+                      }
+                      return 'Set a percentage to auto-calc discount price';
+                    })()}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
           <div>

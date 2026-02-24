@@ -2,6 +2,8 @@ export interface Product {
   id: string;
   name: string;
   price: number;
+  originalPrice?: number;
+  discountPercent?: number;
   description: string;
   category: 'Her' | 'Him';
   image: string;
