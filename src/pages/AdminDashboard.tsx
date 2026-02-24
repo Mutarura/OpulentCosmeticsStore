@@ -179,8 +179,8 @@ export const AdminDashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-100 px-6 py-4 flex justify-between items-center">
-        <h1 className="text-xl font-serif font-bold text-accent">Admin Dashboard</h1>
+      <header className="bg-white border-b border-gray-100 px-4 py-3 md:px-6 md:py-4 flex justify-between items-center">
+        <h1 className="text-lg md:text-xl font-serif font-bold text-accent">Admin Dashboard</h1>
         <button
           onClick={async () => {
             await supabase.auth.signOut();
@@ -192,30 +192,32 @@ export const AdminDashboard: React.FC = () => {
         </button>
       </header>
 
-      <main className="p-6">
-        <div className="mb-6 flex flex-wrap gap-2">
-          {[
-            { id: 'overview', label: 'Overview' },
-            { id: 'products', label: 'Products' },
-            { id: 'inventory', label: 'Inventory' },
-            { id: 'orders', label: 'Orders' },
-            { id: 'banners', label: 'Banners' },
-            { id: 'delivery_zones', label: 'Delivery Zones' },
-            { id: 'customers', label: 'Customers' },
-            { id: 'settings', label: 'Settings' },
-          ].map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as AdminTab)}
-              className={`px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
-                activeTab === tab.id
-                  ? 'bg-accent text-white border-accent'
-                  : 'bg-white text-gray-600 border-gray-200 hover:border-accent hover:text-accent'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+      <main className="px-4 py-4 md:p-6">
+        <div className="mb-4 md:mb-6">
+          <div className="flex gap-2 flex-nowrap md:flex-wrap overflow-x-auto pb-2 -mx-1 px-1">
+            {[
+              { id: 'overview', label: 'Overview' },
+              { id: 'products', label: 'Products' },
+              { id: 'inventory', label: 'Inventory' },
+              { id: 'orders', label: 'Orders' },
+              { id: 'banners', label: 'Banners' },
+              { id: 'delivery_zones', label: 'Delivery Zones' },
+              { id: 'customers', label: 'Customers' },
+              { id: 'settings', label: 'Settings' },
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as AdminTab)}
+                className={`px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-medium border whitespace-nowrap transition-colors ${
+                  activeTab === tab.id
+                    ? 'bg-accent text-white border-accent'
+                    : 'bg-white text-gray-600 border-gray-200 hover:border-accent hover:text-accent'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {activeTab === 'overview' && (
