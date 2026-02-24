@@ -12,7 +12,8 @@ export const Contact: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // Simulate form submission
-    alert('Thank you for your enquiry. We will get back to you shortly!');
+    const mailtoLink = `mailto:opulentcosmetics2016@gmail.com?subject=${encodeURIComponent(formData.subject)}&body=${encodeURIComponent(`Name: ${formData.name}\nEmail: ${formData.email}\n\n${formData.message}`)}`;
+    window.location.href = mailtoLink;
     setFormData({ name: '', email: '', subject: '', message: '' });
   };
 
@@ -66,7 +67,7 @@ export const Contact: React.FC = () => {
                     </div>
                     <div>
                       <h4 className="font-medium text-gray-900">Email Us</h4>
-                      <p className="text-gray-600">hello@opulentcosmetics.ke</p>
+                      <a href="mailto:opulentcosmetics2016@gmail.com" className="text-gray-600 hover:text-slate-900 transition-colors">opulentcosmetics2016@gmail.com</a>
                     </div>
                   </div>
                 </div>
