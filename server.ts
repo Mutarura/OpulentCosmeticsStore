@@ -15,8 +15,8 @@ app.use(express.json());
 
 // Import API handlers dynamically to ensure env vars are loaded first
 // Note: Using .ts extension for tsx execution
-const { default: initializePayment } = await import('./api/payments/initialize.ts');
-const { default: webhookHandler } = await import('./api/payments/webhook.ts');
+const { default: createOrder } = await import('./api/payments/create-order.ts');
+const { default: verifyPayment } = await import('./api/payments/verify-payment.ts');
 
 // Helper to adapt Express req/res to Vercel handler signature if needed
 // Vercel handlers are (req, res) => void | Promise<void>
@@ -30,8 +30,8 @@ const adapt = (handler: any) => async (req: express.Request, res: express.Respon
 };
 
 // Routes
-app.post('/api/payments/initialize', adapt(initializePayment));
-app.all('/api/payments/webhook', adapt(webhookHandler));
+app.post('/api/payments/create-order', adapt(createOrder));
+app.post('/api/payments/verify-payment', adapt(verifyPayment));
 
 // Health check
 app.get('/api/health', (req, res) => {

@@ -65,7 +65,7 @@ interface InventoryRow {
   } | null;
 }
 
-type OrderStatus = 'Pending' | 'Paid' | 'Preparing' | 'Out for Delivery' | 'Delivered';
+type OrderStatus = 'Pending' | 'Paid' | 'Preparing' | 'Out for Delivery' | 'Delivered' | 'Cancelled' | 'Failed';
 
 interface OrderRow {
   id: string;
@@ -1339,14 +1339,16 @@ const OrdersSection: React.FC = () => {
                   )}
                 </td>
                 <td className="py-2 pr-4 text-gray-600 align-top text-[10px] font-mono">
+                  {order.pesapal_merchant_reference && (
+                     <div className="text-gray-800 font-bold mb-1" title="Paystack Reference">
+                       {order.pesapal_merchant_reference}
+                     </div>
+                  )}
                   {order.pesapal_order_tracking_id ? (
                     <div className="text-green-600">ID: {order.pesapal_order_tracking_id}</div>
                   ) : (
-                    <div className="text-amber-500">Pending</div>
+                     order.status === 'Paid' ? <div className="text-red-500">No Trans ID</div> : <div className="text-amber-500">Pending Payment</div>
                   )}
-                  <div className="text-gray-400 truncate max-w-[100px]" title={order.pesapal_merchant_reference}>
-                    {order.pesapal_merchant_reference}
-                  </div>
                 </td>
                 <td className="py-2 pr-4 align-top">
                   <select

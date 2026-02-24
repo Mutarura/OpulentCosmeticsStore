@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { supabase } from '../lib/supabaseClient';
-import { Loader, CreditCard, Smartphone, ShieldCheck, ArrowLeft } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Loader, ArrowLeft, ShieldCheck, Lock } from 'lucide-react';
 
 interface DeliveryZone {
   id: string;
@@ -13,12 +12,14 @@ interface DeliveryZone {
 
 const CHECKOUT_FORM_KEY = 'opulent_checkout_form';
 
+// Paystack Public Key from Environment Variables
+const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
+
 export const Checkout: React.FC = () => {
   const navigate = useNavigate();
-  const { items, totalPrice } = useCart();
+  const { items, totalPrice, clearCart } = useCart();
   const [loading, setLoading] = useState(false);
   const [zones, setZones] = useState<DeliveryZone[]>([]);
-  const [paymentMethod, setPaymentMethod] = useState<'card' | 'mpesa'>('mpesa');
   const [formData, setFormData] = useState(() => {
     if (typeof window === 'undefined') {
       return {
@@ -97,9 +98,45 @@ export const Checkout: React.FC = () => {
   const shippingFee = isDelivery && selectedZone ? selectedZone.fee : 0;
   const grandTotal = totalPrice + shippingFee;
 
+  const handlePaystackSuccess = async (reference: string) => {
+    try {
+      const verifyRes = await fetch('/api/payments/verify-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reference }),
+      });
+      
+      const verifyData = await verifyRes.json();
+      
+      if (verifyRes.ok && verifyData.status === 'success') {
+        clearCart();
+        window.sessionStorage.removeItem(CHECKOUT_FORM_KEY);
+        navigate('/success');
+      } else {
+        alert('Payment verification failed. Please contact support.');
+      }
+    } catch (error) {
+      console.error('Verification error:', error);
+      alert('An error occurred while verifying payment. Please contact support.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePaystackClose = () => {
+    alert('Payment cancelled.');
+    setLoading(false);
+  };
+
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
+    if (!PAYSTACK_PUBLIC_KEY) {
+      alert('Paystack Public Key is missing. Please configure it in your environment variables.');
+      setLoading(false);
+      return;
+    }
 
     try {
       if (isDelivery && (!formData.zoneId || !formData.address.trim())) {
@@ -108,7 +145,8 @@ export const Checkout: React.FC = () => {
         return;
       }
 
-      const response = await fetch('/api/payments/initialize', {
+      // 1. Create Order on Backend
+      const response = await fetch('/api/payments/create-order', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -124,21 +162,46 @@ export const Checkout: React.FC = () => {
           deliveryType: formData.deliveryType,
           deliveryZoneId: isDelivery ? formData.zoneId : null,
           deliveryAddress: isDelivery ? formData.address : null,
-          paymentMethod,
         }),
       });
 
       const data = await response.json();
 
-      if (response.ok && data.link) {
-        window.location.href = data.link;
-      } else {
-        alert(data.error || 'Payment initialization failed');
+      if (!response.ok) {
+        throw new Error(data.error || 'Order creation failed');
       }
-    } catch (error) {
+
+      const { reference, amount, email } = data;
+
+      // 2. Initialize Paystack Popup
+      const handler = (window as any).PaystackPop.setup({
+        key: PAYSTACK_PUBLIC_KEY,
+        email: email,
+        amount: amount, // in kobo
+        currency: 'KES',
+        ref: reference,
+        metadata: {
+          custom_fields: [
+            {
+              display_name: "Customer Name",
+              variable_name: "customer_name",
+              value: `${formData.firstName} ${formData.lastName}`
+            }
+          ]
+        },
+        callback: function(response: any) {
+          handlePaystackSuccess(response.reference);
+        },
+        onClose: function() {
+          handlePaystackClose();
+        }
+      });
+
+      handler.openIframe();
+
+    } catch (error: any) {
       console.error('Checkout error:', error);
-      alert('An error occurred. Please try again.');
-    } finally {
+      alert(error.message || 'An error occurred. Please try again.');
       setLoading(false);
     }
   };
@@ -294,57 +357,12 @@ export const Checkout: React.FC = () => {
               </form>
             </div>
 
-            {/* 2. Payment Method */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-              <h2 className="text-lg font-semibold text-accent mb-4 flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-accent text-white flex items-center justify-center text-xs">2</span>
-                Payment Method
-              </h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <label className={`cursor-pointer border rounded-xl p-4 flex items-center gap-4 transition-all ${paymentMethod === 'mpesa' ? 'border-green-500 bg-green-50 ring-1 ring-green-500' : 'border-gray-200 hover:border-gray-300'}`}>
-                  <input 
-                    type="radio" 
-                    name="payment" 
-                    value="mpesa" 
-                    checked={paymentMethod === 'mpesa'}
-                    onChange={() => setPaymentMethod('mpesa')}
-                    className="w-4 h-4 text-green-600 focus:ring-green-500"
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Smartphone className="w-5 h-5 text-green-600" />
-                      <span className="font-semibold text-gray-900">M-Pesa</span>
-                    </div>
-                    <p className="text-xs text-gray-500">Pay instantly via M-Pesa mobile money</p>
-                  </div>
-                </label>
-
-                <label className={`cursor-pointer border rounded-xl p-4 flex items-center gap-4 transition-all ${paymentMethod === 'card' ? 'border-accent bg-accent/5 ring-1 ring-accent' : 'border-gray-200 hover:border-gray-300'}`}>
-                  <input 
-                    type="radio" 
-                    name="payment" 
-                    value="card" 
-                    checked={paymentMethod === 'card'}
-                    onChange={() => setPaymentMethod('card')}
-                    className="w-4 h-4 text-accent focus:ring-accent"
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <CreditCard className="w-5 h-5 text-accent" />
-                      <span className="font-semibold text-gray-900">Card Payment</span>
-                    </div>
-                    <p className="text-xs text-gray-500">Visa, Mastercard, American Express</p>
-                  </div>
-                </label>
-              </div>
-
-              <div className="mt-6 p-4 bg-gray-50 rounded-lg flex items-start gap-3">
-                <ShieldCheck className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                <p className="text-xs text-gray-500">
-                  Payments are securely processed by Pesapal. Your financial information is encrypted and safe.
-                </p>
-              </div>
+            {/* Security Note */}
+            <div className="mt-4 p-4 bg-gray-50 rounded-lg flex items-start gap-3">
+              <ShieldCheck className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-gray-500">
+                Secure checkout powered by Paystack. Your payment information is encrypted and processed securely.
+              </p>
             </div>
           </div>
 
@@ -401,7 +419,10 @@ export const Checkout: React.FC = () => {
                     Processing...
                   </>
                 ) : (
-                  `Pay KSh ${grandTotal.toLocaleString()}`
+                  <>
+                    <Lock className="w-4 h-4" />
+                    Place Order & Pay
+                  </>
                 )}
               </button>
               
