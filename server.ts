@@ -8,10 +8,47 @@ dotenv.config({ path: '.env.local' });
 
 const app = express();
 const PORT = process.env.API_PORT || 3000;
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean);
+const rateWindowMs = 5 * 60 * 1000;
+const rateLimit = 60;
+const rateStore = new Map<string, { ts: number; count: number }>();
 
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use((req, res, next) => {
+  if (!req.path.startsWith('/api/')) return next();
+  if (ALLOWED_ORIGINS.length > 0) {
+    const origin = (req.headers.origin as string) || '';
+    const referer = (req.headers.referer as string) || '';
+    const ok = ALLOWED_ORIGINS.some(o => origin.includes(o) || referer.includes(o));
+    if (!ok) return res.status(403).json({ error: 'Forbidden' });
+  }
+  return next();
+});
+app.use((req, res, next) => {
+  if (!req.path.startsWith('/api/')) return next();
+  const ipHeader = (req.headers['x-forwarded-for'] as string) || '';
+  const ip =
+    (req.ip as string) ||
+    ipHeader.split(',').shift()?.trim() ||
+    (req.socket.remoteAddress as string) ||
+    'unknown';
+  const now = Date.now();
+  const existing = rateStore.get(ip);
+  if (!existing || now - existing.ts > rateWindowMs) {
+    rateStore.set(ip, { ts: now, count: 1 });
+    return next();
+  }
+  if (existing.count >= rateLimit) {
+    return res.status(429).json({ error: 'Too many requests' });
+  }
+  existing.count += 1;
+  return next();
+});
 
 // Import API handlers dynamically to ensure env vars are loaded first
 // Note: Using .ts extension for tsx execution

@@ -20,8 +20,9 @@ export const verifyTransaction = async (reference: string) => {
     );
 
     return response.data;
-  } catch (error: any) {
-    console.error('Paystack Verification Error:', error.response?.data || error.message);
+  } catch (error: unknown) {
+    const err = error as { response?: { data?: unknown }; message?: string };
+    console.error('Paystack Verification Error:', err.response?.data || err.message);
     throw new Error('Paystack verification failed');
   }
 };

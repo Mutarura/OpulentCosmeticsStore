@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { supabaseAdmin } from '../_lib/supabaseAdmin.js';
 import { v4 as uuidv4 } from 'uuid';
+import { submitPesapalOrder, requirePesapalEnv } from '../_lib/pesapal.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -89,11 +90,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const totalAmount = subtotal + deliveryFee;
 
-    // 3. Generate Paystack Reference
+    // 3. Generate Merchant Reference
     const reference = `ORD-${Date.now()}-${uuidv4().split('-')[0]}`;
 
     // 4. Create Order (Pending)
-    // Mapping: pesapal_merchant_reference -> Paystack Reference
+    // Mapping: pesapal_merchant_reference -> Merchant Reference
     const { data: orderData, error: orderError } = await supabaseAdmin
       .from('orders')
       .insert({
@@ -134,17 +135,55 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       throw new Error('Failed to add items to order');
     }
 
-    // 6. Return Paystack Config
-    return res.status(200).json({
-      reference,
-      amount: totalAmount * 100, // Convert to kobo/cents for Paystack
-      email: customerInfo.email,
-      currency: 'KES',
-      orderId: orderData.id
-    });
+    // 6. Register Order with Pesapal and return redirect URL
+    try {
+      requirePesapalEnv();
+      const proto =
+        (req.headers['x-forwarded-proto'] as string) ||
+        (req.headers['x-forwarded-protocol'] as string) ||
+        'https';
+      const host = (req.headers['x-forwarded-host'] as string) || req.headers.host || '';
+      const baseUrl = `${proto}://${host}`;
+      const callbackUrl = `${baseUrl}/success`;
 
-  } catch (error: any) {
-    console.error('Order Creation Error:', error.message);
-    return res.status(500).json({ error: error.message || 'Failed to create order' });
+      const pesapalResp = await submitPesapalOrder({
+        merchantReference: reference,
+        amount: Number(totalAmount),
+        currency: 'KES',
+        description: `Opulent Cosmetics Order ${reference}`,
+        callbackUrl,
+        billing: {
+          email: customerInfo.email,
+          phone: customerInfo.phone,
+          firstName: customerInfo.firstName,
+          lastName: customerInfo.lastName,
+          line1: addressToStore,
+        },
+      });
+
+      // Persist tracking id on order
+      if (pesapalResp?.order_tracking_id) {
+        await supabaseAdmin
+          .from('orders')
+          .update({ pesapal_order_tracking_id: String(pesapalResp.order_tracking_id) })
+          .eq('id', orderData.id);
+      }
+
+      return res.status(200).json({
+        redirect_url: pesapalResp?.redirect_url,
+        merchant_reference: reference,
+        order_tracking_id: pesapalResp?.order_tracking_id || null,
+        orderId: orderData.id,
+      });
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: unknown }; message?: string };
+      console.error('Pesapal registration error:', err.response?.data || err.message);
+      throw new Error('Failed to initialize payment');
+    }
+
+  } catch (error: unknown) {
+    const err = error as { message?: string };
+    console.error('Order Creation Error:', err.message);
+    return res.status(500).json({ error: err.message || 'Failed to create order' });
   }
 }

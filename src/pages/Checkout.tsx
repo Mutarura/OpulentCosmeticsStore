@@ -12,14 +12,13 @@ interface DeliveryZone {
 
 const CHECKOUT_FORM_KEY = 'opulent_checkout_form';
 
-// Paystack Public Key from Environment Variables
-const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
-
 export const Checkout: React.FC = () => {
   const navigate = useNavigate();
   const { items, totalPrice, clearCart } = useCart();
   const [loading, setLoading] = useState(false);
   const [zones, setZones] = useState<DeliveryZone[]>([]);
+  const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
+  const [pollId, setPollId] = useState<number | null>(null);
   const [formData, setFormData] = useState(() => {
     if (typeof window === 'undefined') {
       return {
@@ -98,45 +97,18 @@ export const Checkout: React.FC = () => {
   const shippingFee = isDelivery && selectedZone ? selectedZone.fee : 0;
   const grandTotal = totalPrice + shippingFee;
 
-  const handlePaystackSuccess = async (reference: string) => {
-    try {
-      const verifyRes = await fetch('/api/payments/verify-payment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reference }),
-      });
-      
-      const verifyData = await verifyRes.json();
-      
-      if (verifyRes.ok && verifyData.status === 'success') {
-        clearCart();
-        window.sessionStorage.removeItem(CHECKOUT_FORM_KEY);
-        navigate('/success');
-      } else {
-        alert('Payment verification failed. Please contact support.');
+  // Clean up polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollId) {
+        window.clearInterval(pollId);
       }
-    } catch (error) {
-      console.error('Verification error:', error);
-      alert('An error occurred while verifying payment. Please contact support.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handlePaystackClose = () => {
-    alert('Payment cancelled.');
-    setLoading(false);
-  };
+    };
+  }, [pollId]);
 
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
-    if (!PAYSTACK_PUBLIC_KEY) {
-      alert('Paystack Public Key is missing. Please configure it in your environment variables.');
-      setLoading(false);
-      return;
-    }
 
     try {
       if (isDelivery && (!formData.zoneId || !formData.address.trim())) {
@@ -145,7 +117,7 @@ export const Checkout: React.FC = () => {
         return;
       }
 
-      // 1. Create Order on Backend
+      // 1. Create Order on Backend and get Pesapal redirect URL
       const response = await fetch('/api/payments/create-order', {
         method: 'POST',
         headers: {
@@ -171,37 +143,38 @@ export const Checkout: React.FC = () => {
         throw new Error(data.error || 'Order creation failed');
       }
 
-      const { reference, amount, email } = data;
+      const { redirect_url, merchant_reference } = data;
+      if (!redirect_url || !merchant_reference) {
+        throw new Error('Failed to initialize payment.');
+      }
 
-      // 2. Initialize Paystack Popup
-      const handler = (window as any).PaystackPop.setup({
-        key: PAYSTACK_PUBLIC_KEY,
-        email: email,
-        amount: amount, // in kobo
-        currency: 'KES',
-        ref: reference,
-        metadata: {
-          custom_fields: [
-            {
-              display_name: "Customer Name",
-              variable_name: "customer_name",
-              value: `${formData.firstName} ${formData.lastName}`
-            }
-          ]
-        },
-        callback: function(response: any) {
-          handlePaystackSuccess(response.reference);
-        },
-        onClose: function() {
-          handlePaystackClose();
+      setPaymentUrl(redirect_url);
+      // 2. Start polling verification while user completes payment in iframe
+      const id = window.setInterval(async () => {
+        try {
+          const verifyRes = await fetch('/api/payments/verify-payment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reference: merchant_reference }),
+          });
+          const verifyData = await verifyRes.json();
+          if (verifyRes.ok && verifyData.status === 'success') {
+            if (pollId) window.clearInterval(pollId);
+            setPaymentUrl(null);
+            clearCart();
+            window.sessionStorage.removeItem(CHECKOUT_FORM_KEY);
+            navigate('/success');
+          }
+        } catch {
+          // ignore intermittent errors while polling
         }
-      });
+      }, 4000);
+      setPollId(id);
 
-      handler.openIframe();
-
-    } catch (error: any) {
-      console.error('Checkout error:', error);
-      alert(error.message || 'An error occurred. Please try again.');
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error('Checkout error:', err);
+      alert(err.message || 'An error occurred. Please try again.');
       setLoading(false);
     }
   };
@@ -361,7 +334,7 @@ export const Checkout: React.FC = () => {
             <div className="mt-4 p-4 bg-gray-50 rounded-lg flex items-start gap-3">
               <ShieldCheck className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
               <p className="text-xs text-gray-500">
-                Secure checkout powered by Paystack. Your payment information is encrypted and processed securely.
+                Secure checkout powered by Pesapal. Your payment information is encrypted and processed securely.
               </p>
             </div>
           </div>
@@ -433,6 +406,39 @@ export const Checkout: React.FC = () => {
           </div>
         </div>
       </div>
+      {/* Pesapal Modal */}
+      {paymentUrl && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="text-sm font-semibold text-accent">Complete Payment</h3>
+              <button
+                onClick={() => {
+                  if (pollId) window.clearInterval(pollId);
+                  setPollId(null);
+                  setPaymentUrl(null);
+                  setLoading(false);
+                }}
+                className="text-xs text-gray-500 hover:text-gray-700"
+              >
+                Close
+              </button>
+            </div>
+            <div className="h-[70vh]">
+              <iframe
+                title="Pesapal Checkout"
+                src={paymentUrl}
+                className="w-full h-full"
+              />
+            </div>
+            <div className="p-4 border-t">
+              <p className="text-[11px] text-gray-500">
+                Do not close this window until payment completes. If you already paid, it may take a few seconds to confirm.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

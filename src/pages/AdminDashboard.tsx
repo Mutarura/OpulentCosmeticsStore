@@ -1340,7 +1340,7 @@ const OrdersSection: React.FC = () => {
                 </td>
                 <td className="py-2 pr-4 text-gray-600 align-top text-[10px] font-mono">
                   {order.pesapal_merchant_reference && (
-                     <div className="text-gray-800 font-bold mb-1" title="Paystack Reference">
+                     <div className="text-gray-800 font-bold mb-1" title="Pesapal Reference">
                        {order.pesapal_merchant_reference}
                      </div>
                   )}
