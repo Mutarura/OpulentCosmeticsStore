@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Mail, Phone, MapPin, Send } from 'lucide-react';
+import { SEO } from '../components/SEO';
 
 export const Contact: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -23,6 +24,11 @@ export const Contact: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-100 via-rose-50 to-slate-50 py-16">
+      <SEO
+        title="Contact Opulent Cosmetics | Customer Care Kenya"
+        description="Get in touch with Opulent Cosmetics for orders, support, and store information. We're here to help."
+        canonicalPath="/contact"
+      />
       <div className="container mx-auto px-4">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">

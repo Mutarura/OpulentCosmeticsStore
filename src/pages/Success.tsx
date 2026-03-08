@@ -1,10 +1,16 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { CheckCircle } from 'lucide-react';
+import { SEO } from '../components/SEO';
 
 export const Success: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-20 px-4">
+      <SEO
+        title="Order Success | Opulent Cosmetics"
+        description="Your Opulent Cosmetics order was placed successfully. We’re getting it ready for delivery."
+        canonicalPath="/success"
+      />
       <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center">
         <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6">
           <CheckCircle className="w-10 h-10 text-green-500" />

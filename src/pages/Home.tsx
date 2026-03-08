@@ -8,6 +8,7 @@ import type { Product } from '../data/products';
 import { useSearch } from '../context/SearchContext';
 import { useCategory } from '../context/CategoryContext';
 import { supabase } from '../lib/supabaseClient';
+import { SEO } from '../components/SEO';
 
 type ProductImageRow = {
   storage_path: string;
@@ -202,6 +203,11 @@ export const Home: React.FC = () => {
 
   return (
     <div className="min-h-screen pb-0 bg-white">
+      <SEO
+        title="Opulent Cosmetics | Luxury Beauty Products in Kenya"
+        description="Shop premium cosmetics, skincare, and beauty products at Opulent Cosmetics. Authentic luxury brands delivered across Kenya."
+        canonicalPath="/"
+      />
       <HeroCarousel key={category} />
       
       <section className="container mx-auto px-4 py-16">

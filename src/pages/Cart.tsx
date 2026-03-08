@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { Minus, Plus, Trash2, ArrowLeft } from 'lucide-react';
+import { SEO } from '../components/SEO';
 
 export const Cart: React.FC = () => {
   const { items, removeFromCart, updateQuantity, totalPrice, clearCart } = useCart();
@@ -30,6 +31,11 @@ export const Cart: React.FC = () => {
   if (items.length === 0) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center p-4">
+        <SEO
+          title="Your Cart | Opulent Cosmetics"
+          description="Review your selected items at Opulent Cosmetics before secure checkout."
+          canonicalPath="/cart"
+        />
         <h2 className="text-3xl font-serif font-bold text-accent mb-4">Your Cart is Empty</h2>
         <p className="text-gray-700 mb-8">Looks like you haven't added anything yet.</p>
         <Link to="/" className="px-8 py-3 bg-accent text-white rounded-full hover:bg-gray-800 transition-colors">
@@ -41,6 +47,11 @@ export const Cart: React.FC = () => {
 
   return (
     <div className="pt-12 pb-20">
+      <SEO
+        title="Your Cart | Opulent Cosmetics"
+        description="Review your selected items at Opulent Cosmetics before secure checkout."
+        canonicalPath="/cart"
+      />
       <div className="container mx-auto px-4">
         <h1 className="text-3xl md:text-4xl font-serif font-bold text-accent mb-12 text-center">Your Shopping Bag</h1>
 

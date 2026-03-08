@@ -5,6 +5,7 @@ import { useCart } from '../context/CartContext';
 import { Minus, Plus, Star, Check } from 'lucide-react';
 import { ProductCard } from '../components/ProductCard';
 import { supabase } from '../lib/supabaseClient';
+import { SEO } from '../components/SEO';
 
 type ProductImageRow = {
   storage_path: string;
@@ -252,6 +253,12 @@ export const ProductDetails: React.FC = () => {
 
   return (
     <div className="pt-8 pb-20">
+      <SEO
+        title={`${product.name} | Opulent Cosmetics`}
+        description={product.description && product.description.length > 0 ? product.description : 'Shop premium cosmetics, skincare, and beauty products at Opulent Cosmetics.'}
+        canonicalPath={`/product/${id}`}
+        image={product.image}
+      />
       <div className="container mx-auto px-4">
         {/* Breadcrumb */}
         <div className="text-sm text-gray-400 mb-8">

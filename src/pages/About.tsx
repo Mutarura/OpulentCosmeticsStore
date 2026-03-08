@@ -1,8 +1,14 @@
 import React from 'react';
+import { SEO } from '../components/SEO';
 
 export const About: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-100 via-rose-50 to-slate-50">
+      <SEO
+        title="About Opulent Cosmetics | Luxury Beauty in Kenya"
+        description="Learn about Opulent Cosmetics and our commitment to authentic, premium beauty and skincare in Kenya."
+        canonicalPath="/about"
+      />
       <div className="container mx-auto px-4 py-16">
         <div className="max-w-5xl mx-auto space-y-16">
           <section className="space-y-6">

@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { supabase } from '../lib/supabaseClient';
 import { Loader, ArrowLeft, ShieldCheck, Lock } from 'lucide-react';
+import { SEO } from '../components/SEO';
 
 interface DeliveryZone {
   id: string;
@@ -181,6 +182,11 @@ export const Checkout: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 pt-8 pb-20">
+      <SEO
+        title="Checkout | Opulent Cosmetics"
+        description="Secure checkout with Pesapal at Opulent Cosmetics. Complete your order with fast delivery in Kenya."
+        canonicalPath="/checkout"
+      />
       <div className="container mx-auto px-4">
         <div className="mb-6">
           <Link to="/cart" className="inline-flex items-center gap-2 text-sm text-gray-700 hover:text-accent">

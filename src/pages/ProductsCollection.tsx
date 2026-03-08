@@ -4,6 +4,7 @@ import type { Product } from '../data/products';
 import { useCategory } from '../context/CategoryContext';
 import { supabase } from '../lib/supabaseClient';
 import { ProductCard } from '../components/ProductCard';
+import { SEO } from '../components/SEO';
 
 type ProductImageRow = {
   storage_path: string;
@@ -146,6 +147,11 @@ export const ProductsCollection: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-white pt-8 pb-16">
+      <SEO
+        title={`${displayCategory === 'Her' ? 'For Her' : 'For Him'} Collection | Opulent Cosmetics`}
+        description="Explore curated luxury beauty essentials. Authentic premium cosmetics and skincare delivered across Kenya."
+        canonicalPath={`/products/${genderParam}`}
+      />
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between mb-6">
           <Link
@@ -191,4 +197,3 @@ export const ProductsCollection: React.FC = () => {
     </div>
   );
 };
-
