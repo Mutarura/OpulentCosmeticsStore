@@ -93,14 +93,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       if (orderItems) {
         for (const item of orderItems) {
-          const { data: inventory } = await supabaseAdmin
+          let invQ = supabaseAdmin
             .from('inventory')
             .select('id, quantity')
-            .eq('product_id', item.product_id)
-            .eq('size', item.size || null)
-            .eq('color', item.color || null)
-            .maybeSingle();
-          
+            .eq('product_id', item.product_id);
+          invQ = item.size ? invQ.eq('size', item.size) : invQ.is('size', null);
+          invQ = item.color ? invQ.eq('color', item.color) : invQ.is('color', null);
+          const { data: inventory } = await invQ.maybeSingle();
           if (inventory) {
             await supabaseAdmin
               .from('inventory')

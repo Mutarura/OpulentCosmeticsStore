@@ -39,13 +39,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       // Check Inventory
-      const { data: inventoryData } = await supabaseAdmin
+      let invQuery = supabaseAdmin
         .from('inventory')
         .select('quantity')
-        .eq('product_id', item.id)
-        .eq('size', item.selectedSize || null)
-        .eq('color', item.selectedColor || null)
-        .maybeSingle();
+        .eq('product_id', item.id);
+      invQuery = item.selectedSize
+        ? invQuery.eq('size', item.selectedSize)
+        : invQuery.is('size', null);
+      invQuery = item.selectedColor
+        ? invQuery.eq('color', item.selectedColor)
+        : invQuery.is('color', null);
+      const { data: inventoryData } = await invQuery.maybeSingle();
 
       const availableStock = inventoryData?.quantity || 0;
       if (availableStock < item.quantity) {
