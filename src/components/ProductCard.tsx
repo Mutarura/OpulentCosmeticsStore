@@ -18,7 +18,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   
   const activeBtnColor = category === 'her' 
     ? 'bg-theme-pink hover:bg-pink-600' 
-    : 'bg-theme-teal hover:bg-teal-700';
+    : category === 'accessories'
+      ? 'bg-theme-orange hover:bg-orange-600'
+      : 'bg-theme-teal hover:bg-teal-700';
 
   const handleAddToCart = () => {
     if (isOutOfStock) return;

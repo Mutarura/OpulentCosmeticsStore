@@ -19,7 +19,7 @@ type ProductImageRow = {
 type ProductRowWithImages = {
   id: string;
   name: string;
-  category: 'his' | 'hers';
+  category: 'his' | 'hers' | 'accessories';
   price: number;
   discount_price: number | null;
   product_images?: ProductImageRow[] | null;
@@ -53,6 +53,12 @@ const getFallbackImageForProduct = (name: string) => {
   if (lower.includes('beard') || lower.includes('shaving')) {
     return 'https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=900&auto=format&fit=crop';
   }
+  if (lower.includes('chain') || lower.includes('necklace') || lower.includes('earring')) {
+    return 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?q=80&w=900&auto=format&fit=crop';
+  }
+  if (lower.includes('bag') || lower.includes('pouch') || lower.includes('makeup bag')) {
+    return 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?q=80&w=900&auto=format&fit=crop';
+  }
   return 'https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?q=80&w=900&auto=format&fit=crop';
 };
 
@@ -61,53 +67,54 @@ const mapDbProductToStoreProduct = (row: ProductRowWithImages): Product => {
   const sortedImages = [...images].sort((a, b) => {
     const aPrimary = a.is_primary ? 1 : 0;
     const bPrimary = b.is_primary ? 1 : 0;
-    if (aPrimary !== bPrimary) {
-      return bPrimary - aPrimary;
-    }
-    const aOrder = a.sort_order ?? 0;
-    const bOrder = b.sort_order ?? 0;
-    return aOrder - bOrder;
+    if (aPrimary !== bPrimary) return bPrimary - aPrimary;
+    return (a.sort_order ?? 0) - (b.sort_order ?? 0);
   });
 
   const primaryImage = sortedImages[0];
-
   const imageUrl = primaryImage
-    ? supabase.storage.from(PRODUCT_IMAGES_BUCKET).getPublicUrl(primaryImage.storage_path).data
-        .publicUrl
+    ? supabase.storage.from(PRODUCT_IMAGES_BUCKET).getPublicUrl(primaryImage.storage_path).data.publicUrl
     : getFallbackImageForProduct(row.name);
+
+  const base = Number(row.price);
+  const discount = row.discount_price != null ? Number(row.discount_price) : null;
+  const hasDiscount = discount != null && discount > 0 && discount < base;
 
   return {
     id: row.id,
     name: row.name,
-    price: (() => {
-      const base = Number(row.price);
-      const discount = row.discount_price != null ? Number(row.discount_price) : null;
-      if (discount != null && discount > 0 && discount < base) {
-        return discount;
-      }
-      return base;
-    })(),
-    originalPrice: (() => {
-      const base = Number(row.price);
-      const discount = row.discount_price != null ? Number(row.discount_price) : null;
-      if (discount != null && discount > 0 && discount < base) {
-        return base;
-      }
-      return undefined;
-    })(),
-    discountPercent: (() => {
-      const base = Number(row.price);
-      const discount = row.discount_price != null ? Number(row.discount_price) : null;
-      if (discount != null && discount > 0 && discount < base) {
-        return Math.round((1 - discount / base) * 100);
-      }
-      return undefined;
-    })(),
+    price: hasDiscount ? discount! : base,
+    originalPrice: hasDiscount ? base : undefined,
+    discountPercent: hasDiscount ? Math.round((1 - discount! / base) * 100) : undefined,
     description: '',
-    category: row.category === 'hers' ? 'Her' : 'Him',
+    category: row.category === 'hers' ? 'Her' : row.category === 'accessories' ? 'Accessories' : 'Him',
     image: imageUrl,
     rating: 4.8,
   };
+};
+
+const sectionConfig = {
+  her: {
+    title: 'Exclusive Collection for Her',
+    subtitle: 'Discover our curated selection of beauty essentials designed to enhance your natural radiance.',
+    accentClass: 'bg-theme-pink',
+    buttonClass: 'bg-theme-pink hover:bg-pink-600',
+    route: 'her',
+  },
+  him: {
+    title: 'Premium Selection for Him',
+    subtitle: 'Sophisticated grooming products and refined fragrances for the modern gentleman.',
+    accentClass: 'bg-theme-teal',
+    buttonClass: 'bg-theme-teal hover:bg-teal-600',
+    route: 'him',
+  },
+  accessories: {
+    title: 'Curated Accessories',
+    subtitle: 'Chains, earrings, and travel essentials — reserved for the discerning few.',
+    accentClass: 'bg-theme-orange',
+    buttonClass: 'bg-theme-orange hover:bg-orange-600',
+    route: 'accessories',
+  },
 };
 
 export const Home: React.FC = () => {
@@ -127,15 +134,11 @@ export const Home: React.FC = () => {
 
       const { data, error: queryError } = await supabase
         .from('products')
-        .select(
-          'id, name, category, price, discount_price, active, product_images(storage_path, is_primary, sort_order)'
-        )
+        .select('id, name, category, price, discount_price, active, product_images(storage_path, is_primary, sort_order)')
         .eq('active', true)
         .order('created_at', { ascending: false });
 
-      if (!isMounted) {
-        return;
-      }
+      if (!isMounted) return;
 
       if (queryError) {
         setError(queryError.message);
@@ -152,20 +155,8 @@ export const Home: React.FC = () => {
 
     const channel = supabase
       .channel('public:storefront-products')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'products' },
-        () => {
-          void fetchProducts();
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'product_images' },
-        () => {
-          void fetchProducts();
-        }
-      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => void fetchProducts())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'product_images' }, () => void fetchProducts())
       .subscribe();
 
     return () => {
@@ -175,18 +166,15 @@ export const Home: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
+    if (typeof window === 'undefined') return;
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const normalizedCategory = category === 'her' ? 'Her' : 'Him';
+  const normalizedCategory =
+    category === 'her' ? 'Her' : category === 'accessories' ? 'Accessories' : 'Him';
 
   const filteredProducts = products.filter(product => {
     const matchesCategory = product.category === normalizedCategory;
@@ -197,9 +185,12 @@ export const Home: React.FC = () => {
       product.description.toLowerCase().includes(query);
     return matchesCategory && matchesSearch;
   });
+
   const maxVisible = searchQuery.length > 0 ? filteredProducts.length : isMobile ? 4 : 8;
   const visibleProducts = filteredProducts.slice(0, maxVisible);
   const hasMoreProducts = filteredProducts.length > maxVisible && searchQuery.length === 0;
+
+  const config = sectionConfig[category];
 
   return (
     <div className="min-h-screen pb-0 bg-white">
@@ -209,25 +200,17 @@ export const Home: React.FC = () => {
         canonicalPath="/"
       />
       <HeroCarousel key={category} />
-      
+
       <section className="container mx-auto px-4 py-16">
         <div className="text-center mb-12 animate-fade-in-up">
           <h2 className="text-3xl md:text-4xl font-serif font-bold text-accent mb-4">
-            {category === 'her' ? 'Exclusive Collection for Her' : 'Premium Selection for Him'}
+            {config.title}
           </h2>
-          <div className={`w-24 h-1 mx-auto rounded-full transition-colors duration-300 ${category === 'her' ? 'bg-theme-pink' : 'bg-theme-teal'}`} />
-          <p className="mt-4 text-gray-500 max-w-2xl mx-auto">
-            {category === 'her' 
-              ? 'Discover our curated selection of beauty essentials designed to enhance your natural radiance.' 
-              : 'Explore our range of sophisticated grooming products crafted for the modern gentleman.'}
-          </p>
+          <div className={`w-24 h-1 mx-auto rounded-full transition-colors duration-300 ${config.accentClass}`} />
+          <p className="mt-4 text-gray-500 max-w-2xl mx-auto">{config.subtitle}</p>
         </div>
-        
-        {error && (
-          <div className="mb-6 text-sm text-red-500">
-            {error}
-          </div>
-        )}
+
+        {error && <div className="mb-6 text-sm text-red-500">{error}</div>}
 
         {loading ? (
           <div className="text-center py-20 bg-gray-50 rounded-xl">
@@ -246,12 +229,8 @@ export const Home: React.FC = () => {
             {hasMoreProducts && (
               <div className="mt-12 text-center animate-fade-in-up">
                 <Link
-                  to={`/products/${category === 'her' ? 'her' : 'him'}`}
-                  className={`inline-block px-8 py-3 rounded-full text-white font-medium shadow-md transition-all hover:scale-105 hover:shadow-lg ${
-                    category === 'her'
-                      ? 'bg-theme-pink hover:bg-pink-600'
-                      : 'bg-theme-teal hover:bg-teal-600'
-                  }`}
+                  to={`/products/${config.route}`}
+                  className={`inline-block px-8 py-3 rounded-full text-white font-medium shadow-md transition-all hover:scale-105 hover:shadow-lg ${config.buttonClass}`}
                 >
                   See Full Collection
                 </Link>
@@ -264,7 +243,7 @@ export const Home: React.FC = () => {
           </div>
         )}
       </section>
-      
+
       <StorePromise />
       <BrandsCarousel />
     </div>

@@ -67,10 +67,10 @@ export const Cart: React.FC = () => {
                 <div className="flex-1 flex flex-col justify-between">
                   <div className="flex justify-between items-start">
                     <div>
-                      <Link to={`/product/${item.id}`} className={`font-serif font-medium text-lg ${item.category === 'Her' ? 'text-theme-pink' : 'text-theme-teal'} hover:text-secondary transition-colors`}>
+                      <Link to={`/product/${item.id}`} className={`font-serif font-medium text-lg ${item.category === 'Her' ? 'text-theme-pink' : item.category === 'Accessories' ? 'text-theme-orange' : 'text-theme-teal'} hover:text-secondary transition-colors`}>
                         {item.name}
                       </Link>
-                      <p className="text-sm text-gray-600 mt-1">{item.category === 'Her' ? 'For Her' : 'For Him'}</p>
+                      <p className="text-sm text-gray-600 mt-1">{item.category === 'Her' ? 'For Her' : item.category === 'Accessories' ? 'Accessories' : 'For Him'}</p>
                     </div>
                     <button 
                       onClick={() => removeFromCart(item.id)}
@@ -84,19 +84,19 @@ export const Cart: React.FC = () => {
                     <div className="flex items-center border border-gray-200 rounded-full h-10">
                       <button 
                         onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                        className={`w-10 h-full flex items-center justify-center text-gray-500 ${item.category === 'Her' ? 'hover:text-theme-pink' : 'hover:text-theme-teal'}`}
+                        className={`w-10 h-full flex items-center justify-center text-gray-500 ${item.category === 'Her' ? 'hover:text-theme-pink' : item.category === 'Accessories' ? 'hover:text-theme-orange' : 'hover:text-theme-teal'}`}
                       >
                         <Minus className="w-3 h-3" />
                       </button>
-                      <span className={`w-8 text-center text-sm font-medium ${item.category === 'Her' ? 'text-theme-pink' : 'text-theme-teal'}`}>{item.quantity}</span>
+                      <span className={`w-8 text-center text-sm font-medium ${item.category === 'Her' ? 'text-theme-pink' : item.category === 'Accessories' ? 'text-theme-orange' : 'text-theme-teal'}`}>{item.quantity}</span>
                       <button 
                         onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                        className={`w-10 h-full flex items-center justify-center text-gray-500 ${item.category === 'Her' ? 'hover:text-theme-pink' : 'hover:text-theme-teal'}`}
+                        className={`w-10 h-full flex items-center justify-center text-gray-500 ${item.category === 'Her' ? 'hover:text-theme-pink' : item.category === 'Accessories' ? 'hover:text-theme-orange' : 'hover:text-theme-teal'}`}
                       >
                         <Plus className="w-3 h-3" />
                       </button>
                     </div>
-                    <p className={`font-medium text-lg ${item.category === 'Her' ? 'text-theme-pink' : 'text-theme-teal'}`}>KSh {(item.price * item.quantity).toLocaleString()}</p>
+                    <p className={`font-medium text-lg ${item.category === 'Her' ? 'text-theme-pink' : item.category === 'Accessories' ? 'text-theme-orange' : 'text-theme-teal'}`}>KSh {(item.price * item.quantity).toLocaleString()}</p>
                   </div>
                 </div>
               </div>

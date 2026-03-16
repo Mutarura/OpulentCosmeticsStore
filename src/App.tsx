@@ -18,11 +18,9 @@ import { Success } from './pages/Success';
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
-
   React.useEffect(() => {
     window.scrollTo(0, 0);
   }, [pathname]);
-
   return null;
 };
 
@@ -33,26 +31,26 @@ const App: React.FC = () => {
         <CartProvider>
           <SearchProvider>
             <ScrollToTop />
-          <div className="flex flex-col min-h-screen bg-white">
-            <Header />
-            <main className="flex-grow">
-              <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/products/:gender" element={<ProductsCollection />} />
-                <Route path="/product/:id" element={<ProductDetails />} />
-                <Route path="/cart" element={<Cart />} />
-                <Route path="/checkout" element={<Checkout />} />
-                <Route path="/success" element={<Success />} />
-                <Route path="/about" element={<About />} />
-                <Route path="/contact" element={<Contact />} />
-                <Route path="/admin/login" element={<AdminLogin />} />
-                <Route path="/admin" element={<AdminDashboard />} />
-              </Routes>
-            </main>
-            <Footer />
-          </div>
-        </SearchProvider>
-      </CartProvider>
+            <div className="flex flex-col min-h-screen bg-white">
+              <Header />
+              <main className="flex-grow">
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/products/:gender" element={<ProductsCollection />} />
+                  <Route path="/product/:id" element={<ProductDetails />} />
+                  <Route path="/cart" element={<Cart />} />
+                  <Route path="/checkout" element={<Checkout />} />
+                  <Route path="/success" element={<Success />} />
+                  <Route path="/about" element={<About />} />
+                  <Route path="/contact" element={<Contact />} />
+                  <Route path="/admin/login" element={<AdminLogin />} />
+                  <Route path="/admin" element={<AdminDashboard />} />
+                </Routes>
+              </main>
+              <Footer />
+            </div>
+          </SearchProvider>
+        </CartProvider>
       </CategoryProvider>
     </Router>
   );

@@ -27,7 +27,7 @@ export const About: React.FC = () => {
 
           <section className="grid md:grid-cols-3 gap-8">
             <div className="bg-white rounded-2xl p-6 shadow-md">
-              <h2 className="text-sm font-semibold tracking-[0.24em] uppercase text-gray-700 mb-3">
+              <h2 className="text-sm font-semibold tracking-[0.24em] uppercase text-theme-pink mb-3">
                 FOR HER
               </h2>
               <p className="text-sm md:text-base text-gray-700">
@@ -36,7 +36,7 @@ export const About: React.FC = () => {
               </p>
             </div>
             <div className="bg-white rounded-2xl p-6 shadow-md">
-              <h2 className="text-sm font-semibold tracking-[0.24em] uppercase text-gray-700 mb-3">
+              <h2 className="text-sm font-semibold tracking-[0.24em] uppercase text-theme-teal mb-3">
                 FOR HIM
               </h2>
               <p className="text-sm md:text-base text-gray-700">
@@ -45,12 +45,12 @@ export const About: React.FC = () => {
               </p>
             </div>
             <div className="bg-white rounded-2xl p-6 shadow-md">
-              <h2 className="text-sm font-semibold tracking-[0.24em] uppercase text-gray-700 mb-3">
-                FOR REAL LIFE
+              <h2 className="text-sm font-semibold tracking-[0.24em] uppercase text-theme-orange mb-3">
+                ACCESSORIES
               </h2>
               <p className="text-sm md:text-base text-gray-700">
-                We think about shelf-life, storage, and wear — so what you buy feels as good on the
-                50th use as it did on the first.
+                Curated chains, earrings, and travel essentials designed to complement your look
+                with a touch of understated elegance.
               </p>
             </div>
           </section>

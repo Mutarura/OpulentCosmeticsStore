@@ -16,7 +16,7 @@ type ProductImageRow = {
 type ProductRowWithImages = {
   id: string;
   name: string;
-  category: 'his' | 'hers';
+  category: 'his' | 'hers' | 'accessories';
   subcategory?: string | null;
   price: number;
   discount_price: number | null;
@@ -53,6 +53,12 @@ const getFallbackImageForProduct = (name: string) => {
   if (lower.includes('beard') || lower.includes('shaving')) {
     return 'https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=900&auto=format&fit=crop';
   }
+  if (lower.includes('chain') || lower.includes('necklace') || lower.includes('earring')) {
+    return 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?q=80&w=900&auto=format&fit=crop';
+  }
+  if (lower.includes('bag') || lower.includes('pouch') || lower.includes('makeup bag')) {
+    return 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?q=80&w=900&auto=format&fit=crop';
+  }
   return 'https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?q=80&w=900&auto=format&fit=crop';
 };
 
@@ -61,55 +67,39 @@ const mapDbProductToStoreProduct = (row: ProductRowWithImages): Product => {
   const sortedImages = [...images].sort((a, b) => {
     const aPrimary = a.is_primary ? 1 : 0;
     const bPrimary = b.is_primary ? 1 : 0;
-    if (aPrimary !== bPrimary) {
-      return bPrimary - aPrimary;
-    }
-    const aOrder = a.sort_order ?? 0;
-    const bOrder = b.sort_order ?? 0;
-    return aOrder - bOrder;
+    if (aPrimary !== bPrimary) return bPrimary - aPrimary;
+    return (a.sort_order ?? 0) - (b.sort_order ?? 0);
   });
 
   const primaryImage = sortedImages[0];
-
   const imageUrl = primaryImage
-    ? supabase.storage.from(PRODUCT_IMAGES_BUCKET).getPublicUrl(primaryImage.storage_path).data
-        .publicUrl
+    ? supabase.storage.from(PRODUCT_IMAGES_BUCKET).getPublicUrl(primaryImage.storage_path).data.publicUrl
     : getFallbackImageForProduct(row.name);
+
+  const base = Number(row.price);
+  const discount = row.discount_price != null ? Number(row.discount_price) : null;
+  const hasDiscount = discount != null && discount > 0 && discount < base;
 
   return {
     id: row.id,
     name: row.name,
-    price: (() => {
-      const base = Number(row.price);
-      const discount = row.discount_price != null ? Number(row.discount_price) : null;
-      if (discount != null && discount > 0 && discount < base) {
-        return discount;
-      }
-      return base;
-    })(),
-    originalPrice: (() => {
-      const base = Number(row.price);
-      const discount = row.discount_price != null ? Number(row.discount_price) : null;
-      if (discount != null && discount > 0 && discount < base) {
-        return base;
-      }
-      return undefined;
-    })(),
-    discountPercent: (() => {
-      const base = Number(row.price);
-      const discount = row.discount_price != null ? Number(row.discount_price) : null;
-      if (discount != null && discount > 0 && discount < base) {
-        return Math.round((1 - discount / base) * 100);
-      }
-      return undefined;
-    })(),
+    price: hasDiscount ? discount! : base,
+    originalPrice: hasDiscount ? base : undefined,
+    discountPercent: hasDiscount ? Math.round((1 - discount! / base) * 100) : undefined,
     description: row.description ?? '',
-    category: row.category === 'hers' ? 'Her' : 'Him',
+    category: row.category === 'hers' ? 'Her' : row.category === 'accessories' ? 'Accessories' : 'Him',
     image: imageUrl,
     rating: 4.8,
     subcategory: row.subcategory ?? undefined,
     is_bundle: row.is_bundle ?? false,
   };
+};
+
+// Maps category to display label and route
+const categoryConfig = {
+  Her: { label: 'For Her', route: 'her', accent: 'text-theme-pink' },
+  Him: { label: 'For Him', route: 'him', accent: 'text-theme-teal' },
+  Accessories: { label: 'Accessories', route: 'accessories', accent: 'text-theme-orange' },
 };
 
 export const ProductDetails: React.FC = () => {
@@ -131,16 +121,12 @@ export const ProductDetails: React.FC = () => {
 
       const { data, error: queryError } = await supabase
         .from('products')
-        .select(
-          'id, name, category, subcategory, price, discount_price, active, description, is_bundle, product_images(storage_path, is_primary, sort_order)'
-        )
+        .select('id, name, category, subcategory, price, discount_price, active, description, is_bundle, product_images(storage_path, is_primary, sort_order)')
         .eq('id', id)
         .eq('active', true)
         .maybeSingle();
 
-      if (!isMounted) {
-        return;
-      }
+      if (!isMounted) return;
 
       if (queryError || !data) {
         setError(queryError?.message ?? 'Product not found');
@@ -156,22 +142,18 @@ export const ProductDetails: React.FC = () => {
 
       let relatedQuery = supabase
         .from('products')
-        .select(
-          'id, name, category, subcategory, price, discount_price, active, description, product_images(storage_path, is_primary, sort_order)'
-        )
+        .select('id, name, category, subcategory, price, discount_price, active, description, product_images(storage_path, is_primary, sort_order)')
         .eq('category', row.category)
         .eq('active', true)
         .neq('id', row.id);
-      
+
       if (row.subcategory) {
         relatedQuery = relatedQuery.eq('subcategory', row.subcategory);
       }
 
       const { data: relatedData } = await relatedQuery.limit(4);
 
-      if (!isMounted) {
-        return;
-      }
+      if (!isMounted) return;
 
       const relatedRows = (relatedData ?? []) as ProductRowWithImages[];
       setRelatedProducts(relatedRows.map(mapDbProductToStoreProduct));
@@ -182,20 +164,8 @@ export const ProductDetails: React.FC = () => {
 
     const channel = supabase
       .channel(`product-detail:${id}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'products', filter: `id=eq.${id}` },
-        () => {
-          void fetchProduct();
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'product_images', filter: `product_id=eq.${id}` },
-        () => {
-          void fetchProduct();
-        }
-      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'products', filter: `id=eq.${id}` }, () => void fetchProduct())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'product_images', filter: `product_id=eq.${id}` }, () => void fetchProduct())
       .subscribe();
 
     return () => {
@@ -205,48 +175,26 @@ export const ProductDetails: React.FC = () => {
   }, [id]);
 
   if (!id) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        Product not found
-      </div>
-    );
+    return <div className="min-h-screen flex items-center justify-center">Product not found</div>;
   }
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        Loading product...
-      </div>
-    );
+    return <div className="min-h-screen flex items-center justify-center">Loading product...</div>;
   }
 
   if (!product || error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        {error ?? 'Product not found'}
-      </div>
-    );
+    return <div className="min-h-screen flex items-center justify-center">{error ?? 'Product not found'}</div>;
   }
 
-  const handleDecrement = () => {
-    if (quantity > 1) setQuantity(q => q - 1);
-  };
+  const config = categoryConfig[product.category as keyof typeof categoryConfig] ?? categoryConfig.Her;
 
-  const handleIncrement = () => {
-    setQuantity(q => q + 1);
-  };
+  const handleDecrement = () => { if (quantity > 1) setQuantity(q => q - 1); };
+  const handleIncrement = () => setQuantity(q => q + 1);
 
   const handleAddToCart = () => {
     if (!product) return;
-    
     addToCart(product, quantity);
-    
-    // Haptic feedback
-    if (navigator.vibrate) {
-      navigator.vibrate(50);
-    }
-    
-    // Visual feedback
+    if (navigator.vibrate) navigator.vibrate(50);
     setIsAdded(true);
     setTimeout(() => setIsAdded(false), 2000);
   };
@@ -260,19 +208,30 @@ export const ProductDetails: React.FC = () => {
         image={product.image}
       />
       <div className="container mx-auto px-4">
+
         {/* Breadcrumb */}
         <div className="text-sm text-gray-400 mb-8">
-          <Link to="/" className="hover:text-accent">Home</Link> / 
-          <span className="mx-2">{product.category === 'Her' ? 'For Her' : 'For Him'}</span> / 
-          <span className="text-accent ml-2 font-medium">{product.name}</span>
+          <Link to="/" className="hover:text-accent">Home</Link>
+          <span className="mx-2">/</span>
+          <Link to={`/products/${config.route}`} className={`hover:underline ${config.accent}`}>
+            {config.label}
+          </Link>
+          <span className="mx-2">/</span>
+          {product.subcategory && (
+            <>
+              <span className="text-gray-400">{product.subcategory}</span>
+              <span className="mx-2">/</span>
+            </>
+          )}
+          <span className="text-accent ml-0 font-medium">{product.name}</span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-20 mb-20">
           {/* Image */}
           <div className="bg-gray-50 rounded-2xl overflow-hidden aspect-[4/5] md:aspect-auto md:h-[600px]">
-            <img 
-              src={product.image} 
-              alt={product.name} 
+            <img
+              src={product.image}
+              alt={product.name}
               className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
             />
           </div>
@@ -280,15 +239,14 @@ export const ProductDetails: React.FC = () => {
           {/* Details */}
           <div className="flex flex-col justify-center">
             <div className="flex items-center gap-1 text-yellow-400 mb-4">
-              <Star className="w-4 h-4 fill-current" />
-              <Star className="w-4 h-4 fill-current" />
-              <Star className="w-4 h-4 fill-current" />
-              <Star className="w-4 h-4 fill-current" />
-              <Star className="w-4 h-4 fill-current" />
+              {[...Array(5)].map((_, i) => (
+                <Star key={i} className="w-4 h-4 fill-current" />
+              ))}
               <span className="text-gray-400 text-xs ml-2">(128 reviews)</span>
             </div>
 
             <h1 className="text-4xl font-serif font-bold text-accent mb-4">{product.name}</h1>
+
             <div className="flex items-baseline gap-3 mb-6">
               {product.originalPrice && product.originalPrice > product.price ? (
                 <>
@@ -310,7 +268,7 @@ export const ProductDetails: React.FC = () => {
                 </span>
               )}
             </div>
-            
+
             <p className="text-gray-500 leading-relaxed mb-8">
               {product.description || 'No description available.'}
             </p>
@@ -318,35 +276,24 @@ export const ProductDetails: React.FC = () => {
             {/* Quantity & Add to Cart */}
             <div className="flex flex-col sm:flex-row gap-4 mb-8">
               <div className="flex items-center border border-gray-200 rounded-full w-max">
-                <button 
-                  onClick={handleDecrement}
-                  className="w-12 h-12 flex items-center justify-center text-gray-500 hover:text-accent transition-colors"
-                >
+                <button onClick={handleDecrement} className="w-12 h-12 flex items-center justify-center text-gray-500 hover:text-accent transition-colors">
                   <Minus className="w-4 h-4" />
                 </button>
                 <span className="w-8 text-center font-medium text-accent">{quantity}</span>
-                <button 
-                  onClick={handleIncrement}
-                  className="w-12 h-12 flex items-center justify-center text-gray-500 hover:text-accent transition-colors"
-                >
+                <button onClick={handleIncrement} className="w-12 h-12 flex items-center justify-center text-gray-500 hover:text-accent transition-colors">
                   <Plus className="w-4 h-4" />
                 </button>
               </div>
 
-              <button 
+              <button
                 onClick={handleAddToCart}
                 disabled={isAdded}
                 className={`flex-1 text-white px-8 py-3 rounded-full font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all flex items-center justify-center gap-2 ${
-                  isAdded 
-                    ? 'bg-green-500 hover:bg-green-600' 
-                    : 'bg-accent hover:bg-gray-800'
+                  isAdded ? 'bg-green-500 hover:bg-green-600' : 'bg-accent hover:bg-gray-800'
                 }`}
               >
                 {isAdded ? (
-                  <>
-                    <Check className="w-5 h-5" />
-                    <span>Added to Cart</span>
-                  </>
+                  <><Check className="w-5 h-5" /><span>Added to Cart</span></>
                 ) : (
                   <span>Add to Cart</span>
                 )}
@@ -354,21 +301,32 @@ export const ProductDetails: React.FC = () => {
             </div>
 
             <div className="border-t border-gray-100 pt-6 space-y-3 text-sm text-gray-500">
-              <p><span className="font-medium text-accent">Category:</span> {product.category === 'Her' ? 'Women' : 'Men'}</p>
+              <p>
+                <span className="font-medium text-accent">Category:</span>{' '}
+                {config.label}
+              </p>
+              {product.subcategory && (
+                <p>
+                  <span className="font-medium text-accent">Type:</span>{' '}
+                  {product.subcategory}
+                </p>
+              )}
               <p><span className="font-medium text-accent">Availability:</span> In Stock</p>
             </div>
           </div>
         </div>
 
         {/* Related Products */}
-        <div>
-          <h3 className="text-2xl font-serif font-bold text-accent mb-8">Related Products</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
-            {relatedProducts.map(p => (
-              <ProductCard key={p.id} product={p} />
-            ))}
+        {relatedProducts.length > 0 && (
+          <div>
+            <h3 className="text-2xl font-serif font-bold text-accent mb-8">Related Products</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
+              {relatedProducts.map(p => (
+                <ProductCard key={p.id} product={p} />
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

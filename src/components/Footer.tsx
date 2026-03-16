@@ -6,7 +6,23 @@ import { useCategory } from '../context/CategoryContext';
 export const Footer: React.FC = () => {
   const { category } = useCategory();
   
-  const hoverColor = category === 'her' ? 'hover:text-theme-pink' : 'hover:text-theme-teal';
+  const hoverColor = category === 'her' 
+    ? 'hover:text-theme-pink' 
+    : category === 'accessories' 
+      ? 'hover:text-theme-orange' 
+      : 'hover:text-theme-teal';
+
+  const accentDotColor = category === 'her' 
+    ? 'text-theme-pink' 
+    : category === 'accessories' 
+      ? 'text-theme-orange' 
+      : 'text-theme-teal';
+
+  const whatsappColor = category === 'her' 
+    ? 'text-theme-pink hover:text-pink-700' 
+    : category === 'accessories' 
+      ? 'text-theme-orange hover:text-orange-700' 
+      : 'text-theme-teal hover:text-teal-700';
 
   return (
     <footer className="bg-gray-50 border-t border-gray-100 pt-16 pb-8">
@@ -16,7 +32,7 @@ export const Footer: React.FC = () => {
           <div className="space-y-4">
             <div>
               <h3 className="text-2xl font-serif font-bold text-accent">
-                Opulent<span className={category === 'her' ? 'text-theme-pink' : 'text-theme-teal'}>.</span>
+                Opulent<span className={accentDotColor}>.</span>
               </h3>
               <p className="text-xs uppercase tracking-[0.25em] text-gray-500 mt-1">
                 Reserved for Loyalty
@@ -35,6 +51,7 @@ export const Footer: React.FC = () => {
               <li><Link to="/about" className={`transition-colors ${hoverColor}`}>About Us</Link></li>
               <li><Link to="/products/her" className={`transition-colors ${hoverColor}`}>For Her Collection</Link></li>
               <li><Link to="/products/him" className={`transition-colors ${hoverColor}`}>For Him Collection</Link></li>
+              <li><Link to="/products/accessories" className={`transition-colors ${hoverColor}`}>Accessories</Link></li>
               <li><Link to="/contact" className={`transition-colors ${hoverColor}`}>Enquiry</Link></li>
             </ul>
           </div>
@@ -60,7 +77,7 @@ export const Footer: React.FC = () => {
                   href="https://wa.me/254773198364" 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className={`inline-flex items-center gap-2 font-medium transition-colors ${category === 'her' ? 'text-theme-pink hover:text-pink-700' : 'text-theme-teal hover:text-teal-700'}`}
+                  className={`inline-flex items-center gap-2 font-medium transition-colors ${whatsappColor}`}
                 >
                   WhatsApp
                 </a>
@@ -71,7 +88,7 @@ export const Footer: React.FC = () => {
 
         {/* Bottom */}
         <div className="border-t border-gray-200 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-xs text-gray-400">&copy; {new Date().getFullYear()} Opulent Cosmetics KE. All rights reserved.</p>
+          <p className="text-xs text-gray-400">{'\u00A9'} {new Date().getFullYear()} Opulent Cosmetics KE. All rights reserved.</p>
           <div className="text-xs text-gray-400 flex items-center gap-1">
             Made with <span className="text-red-500">♥</span> in Kenya
           </div>

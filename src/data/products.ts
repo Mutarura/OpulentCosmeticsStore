@@ -5,7 +5,7 @@ export interface Product {
   originalPrice?: number;
   discountPercent?: number;
   description: string;
-  category: 'Her' | 'Him';
+  category: 'Her' | 'Him' | 'Accessories';
   image: string;
   rating: number;
   tag?: 'New' | 'Bestseller' | 'Out of Stock';
@@ -242,4 +242,37 @@ export const products: Product[] = [
     rating: 4.6,
     tag: 'New'
   },
+  // Accessories
+  {
+    id: 'a1',
+    name: 'Silver Figaro Chain',
+    price: 4500,
+    description: 'A classic sterling silver Figaro chain, perfect for everyday wear.',
+    category: 'Accessories',
+    subcategory: 'Chains & Necklaces',
+    image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?q=80&w=800&auto=format&fit=crop',
+    rating: 4.9,
+    tag: 'Bestseller'
+  },
+  {
+    id: 'a2',
+    name: 'Gold Hoop Earrings',
+    price: 3200,
+    description: 'Elegant 14k gold-plated hoop earrings for a timeless look.',
+    category: 'Accessories',
+    subcategory: 'Earrings',
+    image: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?q=80&w=800&auto=format&fit=crop',
+    rating: 4.8
+  },
+  {
+    id: 'a3',
+    name: 'Leather Makeup Bag',
+    price: 5500,
+    description: 'Spacious and durable leather makeup bag to keep your essentials organized.',
+    category: 'Accessories',
+    subcategory: 'Makeup Bags',
+    image: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?q=80&w=800&auto=format&fit=crop',
+    rating: 4.7,
+    tag: 'New'
+  }
 ];

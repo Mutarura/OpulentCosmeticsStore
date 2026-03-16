@@ -28,8 +28,16 @@ const promises = [
 export const StorePromise: React.FC = () => {
   const { category } = useCategory();
   
-  const iconColor = category === 'her' ? 'text-theme-pink' : 'text-theme-teal';
-  const hoverShadow = category === 'her' ? 'hover:shadow-theme-pink/10' : 'hover:shadow-theme-teal/10';
+  const iconColor = category === 'her' 
+    ? 'text-theme-pink' 
+    : category === 'accessories' 
+      ? 'text-theme-orange' 
+      : 'text-theme-teal';
+  const hoverShadow = category === 'her' 
+    ? 'hover:shadow-theme-pink/10' 
+    : category === 'accessories' 
+      ? 'hover:shadow-theme-orange/10' 
+      : 'hover:shadow-theme-teal/10';
 
   return (
     <section className="py-20 bg-gray-50/50">

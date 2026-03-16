@@ -16,7 +16,7 @@ type ProductImageRow = {
 type ProductRowWithImages = {
   id: string;
   name: string;
-  category: 'his' | 'hers';
+  category: 'his' | 'hers' | 'accessories';
   price: number;
   discount_price: number | null;
   product_images?: ProductImageRow[] | null;
@@ -26,30 +26,26 @@ const PRODUCT_IMAGES_BUCKET = 'product-images';
 
 const getFallbackImageForProduct = (name: string) => {
   const lower = name.toLowerCase();
-  if (lower.includes('set') || lower.includes('kit') || lower.includes('bundle')) {
+  if (lower.includes('set') || lower.includes('kit') || lower.includes('bundle'))
     return 'https://images.unsplash.com/photo-1611930022073-b7a4ba5fcccd?q=80&w=900&auto=format&fit=crop';
-  }
-  if (lower.includes('body') || lower.includes('polish') || lower.includes('scrub') || lower.includes('bath')) {
+  if (lower.includes('body') || lower.includes('polish') || lower.includes('scrub') || lower.includes('bath'))
     return 'https://images.unsplash.com/photo-1612815154858-60aa4c59eaa5?q=80&w=900&auto=format&fit=crop';
-  }
-  if (lower.includes('mist') || lower.includes('spray')) {
+  if (lower.includes('mist') || lower.includes('spray'))
     return 'https://images.unsplash.com/photo-1541643600914-78b084683601?q=80&w=900&auto=format&fit=crop';
-  }
-  if (lower.includes('lipstick') || lower.includes('velvet')) {
+  if (lower.includes('lipstick') || lower.includes('velvet'))
     return 'https://images.unsplash.com/photo-1586495777744-4413f21062fa?q=80&w=900&auto=format&fit=crop';
-  }
-  if (lower.includes('serum') || lower.includes('radiance')) {
+  if (lower.includes('serum') || lower.includes('radiance'))
     return 'https://images.unsplash.com/photo-1612815154858-60aa4c59eaa5?q=80&w=900&auto=format&fit=crop';
-  }
-  if (lower.includes('perfume') || lower.includes('essence') || lower.includes('cologne')) {
+  if (lower.includes('perfume') || lower.includes('essence') || lower.includes('cologne'))
     return 'https://images.unsplash.com/photo-1612815154859-04f58d9a1fb4?q=80&w=900&auto=format&fit=crop';
-  }
-  if (lower.includes('cream') || lower.includes('moisturizer') || lower.includes('moisturiser')) {
+  if (lower.includes('cream') || lower.includes('moisturizer') || lower.includes('moisturiser'))
     return 'https://images.unsplash.com/photo-1601049313729-4726f814104b?q=80&w=900&auto=format&fit=crop';
-  }
-  if (lower.includes('beard') || lower.includes('shaving')) {
+  if (lower.includes('beard') || lower.includes('shaving'))
     return 'https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=900&auto=format&fit=crop';
-  }
+  if (lower.includes('chain') || lower.includes('necklace') || lower.includes('earring'))
+    return 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?q=80&w=900&auto=format&fit=crop';
+  if (lower.includes('bag') || lower.includes('pouch'))
+    return 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?q=80&w=900&auto=format&fit=crop';
   return 'https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?q=80&w=900&auto=format&fit=crop';
 };
 
@@ -58,54 +54,40 @@ const mapDbProductToStoreProduct = (row: ProductRowWithImages): Product => {
   const sortedImages = [...images].sort((a, b) => {
     const aPrimary = a.is_primary ? 1 : 0;
     const bPrimary = b.is_primary ? 1 : 0;
-    if (aPrimary !== bPrimary) {
-      return bPrimary - aPrimary;
-    }
-    const aOrder = a.sort_order ?? 0;
-    const bOrder = b.sort_order ?? 0;
-    return aOrder - bOrder;
+    if (aPrimary !== bPrimary) return bPrimary - aPrimary;
+    return (a.sort_order ?? 0) - (b.sort_order ?? 0);
   });
 
   const primaryImage = sortedImages[0];
-
   const imageUrl = primaryImage
-    ? supabase.storage.from(PRODUCT_IMAGES_BUCKET).getPublicUrl(primaryImage.storage_path).data
-        .publicUrl
+    ? supabase.storage.from(PRODUCT_IMAGES_BUCKET).getPublicUrl(primaryImage.storage_path).data.publicUrl
     : getFallbackImageForProduct(row.name);
+
+  const base = Number(row.price);
+  const discount = row.discount_price != null ? Number(row.discount_price) : null;
+  const hasDiscount = discount != null && discount > 0 && discount < base;
 
   return {
     id: row.id,
     name: row.name,
-    price: (() => {
-      const base = Number(row.price);
-      const discount = row.discount_price != null ? Number(row.discount_price) : null;
-      if (discount != null && discount > 0 && discount < base) {
-        return discount;
-      }
-      return base;
-    })(),
-    originalPrice: (() => {
-      const base = Number(row.price);
-      const discount = row.discount_price != null ? Number(row.discount_price) : null;
-      if (discount != null && discount > 0 && discount < base) {
-        return base;
-      }
-      return undefined;
-    })(),
-    discountPercent: (() => {
-      const base = Number(row.price);
-      const discount = row.discount_price != null ? Number(row.discount_price) : null;
-      if (discount != null && discount > 0 && discount < base) {
-        return Math.round((1 - discount / base) * 100);
-      }
-      return undefined;
-    })(),
+    price: hasDiscount ? discount! : base,
+    originalPrice: hasDiscount ? base : undefined,
+    discountPercent: hasDiscount ? Math.round((1 - discount! / base) * 100) : undefined,
     description: '',
-    category: row.category === 'hers' ? 'Her' : 'Him',
+    category: row.category === 'hers' ? 'Her' : row.category === 'accessories' ? 'Accessories' : 'Him',
     image: imageUrl,
     rating: 4.8,
   };
 };
+
+// Active style per category tab
+const tabActiveStyle: Record<string, string> = {
+  her: 'bg-white text-theme-pink shadow-sm',
+  him: 'bg-white text-theme-teal shadow-sm',
+  accessories: 'bg-white text-theme-orange shadow-sm',
+};
+
+const tabInactiveStyle = 'text-gray-500 hover:text-gray-700';
 
 export const Header: React.FC = () => {
   const location = useLocation();
@@ -118,24 +100,18 @@ export const Header: React.FC = () => {
   const [productsError, setProductsError] = useState<string | null>(null);
   const [isBumped, setIsBumped] = useState(false);
 
-  // Close search results when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
         setIsSearchOpen(false);
       }
     };
-
     document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Cart animation
   useEffect(() => {
     if (totalItems === 0) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsBumped(true);
     const timer = setTimeout(() => setIsBumped(false), 300);
     return () => clearTimeout(timer);
@@ -146,18 +122,13 @@ export const Header: React.FC = () => {
 
     const fetchProducts = async () => {
       setProductsError(null);
-
       const { data, error } = await supabase
         .from('products')
-        .select(
-          'id, name, category, price, discount_price, active, product_images(storage_path, is_primary, sort_order)'
-        )
+        .select('id, name, category, price, discount_price, active, product_images(storage_path, is_primary, sort_order)')
         .eq('active', true)
         .order('created_at', { ascending: false });
 
-      if (!isMounted) {
-        return;
-      }
+      if (!isMounted) return;
 
       if (error) {
         setProductsError(error.message);
@@ -172,20 +143,8 @@ export const Header: React.FC = () => {
 
     const channel = supabase
       .channel('public:header-products')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'products' },
-        () => {
-          void fetchProducts();
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'product_images' },
-        () => {
-          void fetchProducts();
-        }
-      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => void fetchProducts())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'product_images' }, () => void fetchProducts())
       .subscribe();
 
     return () => {
@@ -199,12 +158,13 @@ export const Header: React.FC = () => {
     setIsSearchOpen(true);
   };
 
-  const filteredProducts = products.filter(product => 
+  const filteredProducts = products.filter(product =>
     product.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const activeColor = category === 'her' ? 'text-theme-pink' : 'text-theme-teal';
-  const activeBg = category === 'her' ? 'bg-theme-pink' : 'bg-theme-teal';
+  const activeColor = category === 'her' ? 'text-theme-pink' : category === 'accessories' ? 'text-theme-orange' : 'text-theme-teal';
+  const activeBg = category === 'her' ? 'bg-theme-pink' : category === 'accessories' ? 'bg-theme-orange' : 'bg-theme-teal';
+
   const isAdminRoute = location.pathname.startsWith('/admin');
   const hideCategoryToggle =
     isAdminRoute ||
@@ -214,9 +174,40 @@ export const Header: React.FC = () => {
     location.pathname.startsWith('/cart') ||
     location.pathname.startsWith('/checkout');
 
+  // Shared toggle button renderer
+  const renderToggle = (mobile: boolean) => (
+    <div className={`flex items-center bg-gray-100 rounded-full p-1 shadow-inner ${mobile ? 'w-full max-w-xs' : ''}`}>
+      <button
+        onClick={() => setCategory('her')}
+        className={`${mobile ? 'flex-1' : 'px-4'} py-2 rounded-full text-xs font-medium transition-all duration-300 ${
+          category === 'her' ? tabActiveStyle.her : tabInactiveStyle
+        }`}
+      >
+        For Her
+      </button>
+      <button
+        onClick={() => setCategory('him')}
+        className={`${mobile ? 'flex-1' : 'px-4'} py-2 rounded-full text-xs font-medium transition-all duration-300 ${
+          category === 'him' ? tabActiveStyle.him : tabInactiveStyle
+        }`}
+      >
+        For Him
+      </button>
+      <button
+        onClick={() => setCategory('accessories')}
+        className={`${mobile ? 'flex-1' : 'px-4'} py-2 rounded-full text-xs font-medium transition-all duration-300 ${
+          category === 'accessories' ? tabActiveStyle.accessories : tabInactiveStyle
+        }`}
+      >
+        Accessories
+      </button>
+    </div>
+  );
+
   return (
     <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md shadow-sm border-b border-gray-100 transition-colors duration-300">
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+
         {/* Left: Logo */}
         <div className="flex-1 flex justify-start">
           <Link to="/" className="flex items-center gap-3 z-20">
@@ -237,40 +228,20 @@ export const Header: React.FC = () => {
           </Link>
         </div>
 
+        {/* Desktop toggle — 3 buttons */}
         {!hideCategoryToggle && (
           <div className="hidden md:flex flex-1 justify-center">
-            <div className="flex items-center bg-gray-100 rounded-full p-1 shadow-inner">
-              <button
-                onClick={() => setCategory('her')}
-                className={`px-6 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
-                  category === 'her'
-                    ? 'bg-white text-theme-pink shadow-sm'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                For Her
-              </button>
-              <button
-                onClick={() => setCategory('him')}
-                className={`px-6 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
-                  category === 'him'
-                    ? 'bg-white text-theme-teal shadow-sm'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                For Him
-              </button>
-            </div>
+            {renderToggle(false)}
           </div>
         )}
 
-        {/* Right: Search + Icons */}
+        {/* Right: Search + Cart */}
         <div className="flex-1 flex justify-end items-center gap-4">
           {isAdminRoute ? (
             <div className="flex items-center space-x-4" />
           ) : (
             <>
-              {/* Search Bar (Compact) */}
+              {/* Desktop search */}
               <div className="hidden md:block relative w-64" ref={searchRef}>
                 <input
                   type="text"
@@ -280,23 +251,21 @@ export const Header: React.FC = () => {
                   onFocus={() => setIsSearchOpen(true)}
                   className="w-full pl-9 pr-8 py-2 rounded-full border border-gray-200 focus:outline-none focus:ring-1 bg-gray-50 text-sm transition-all focus:border-gray-300"
                 />
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                 {searchQuery && (
-                  <button 
+                  <button
                     onClick={() => { setSearchQuery(''); setIsSearchOpen(false); }}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   >
                     <X className="w-4 h-4" />
                   </button>
                 )}
 
-                {/* Search Dropdown Results */}
+                {/* Search dropdown */}
                 {isSearchOpen && searchQuery && (
                   <div className="absolute top-full right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden max-h-96 overflow-y-auto z-50">
                     {productsError && (
-                      <div className="p-3 text-xs text-red-500 border-b border-gray-100">
-                        {productsError}
-                      </div>
+                      <div className="p-3 text-xs text-red-500 border-b border-gray-100">{productsError}</div>
                     )}
                     {filteredProducts.length > 0 ? (
                       <div>
@@ -304,8 +273,8 @@ export const Header: React.FC = () => {
                           Products
                         </div>
                         {filteredProducts.map(product => (
-                          <Link 
-                            key={product.id} 
+                          <Link
+                            key={product.id}
                             to={`/product/${product.id}`}
                             onClick={() => setIsSearchOpen(false)}
                             className="flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0"
@@ -319,9 +288,7 @@ export const Header: React.FC = () => {
                         ))}
                       </div>
                     ) : (
-                      <div className="p-4 text-center text-gray-500 text-sm">
-                        No products found.
-                      </div>
+                      <div className="p-4 text-center text-gray-500 text-sm">No products found.</div>
                     )}
                   </div>
                 )}
@@ -329,13 +296,13 @@ export const Header: React.FC = () => {
 
               {/* Icons */}
               <div className="flex items-center space-x-4">
-                <button 
+                <button
                   className="md:hidden text-accent hover:text-gray-800 transition-colors"
                   onClick={() => setIsSearchOpen(!isSearchOpen)}
                 >
                   <Search className="w-6 h-6" />
                 </button>
-                
+
                 <Link to="/cart" className={`relative text-accent hover:${activeColor} transition-colors group`}>
                   <ShoppingBag className={`w-6 h-6 transition-transform duration-300 ${isBumped ? 'scale-125 text-amber-500' : ''}`} />
                   {totalItems > 0 && (
@@ -349,38 +316,18 @@ export const Header: React.FC = () => {
           )}
         </div>
       </div>
-      
+
+      {/* Mobile toggle — 3 buttons */}
       {!hideCategoryToggle && (
-        <div className="md:hidden flex justify-center pb-4 px-4">
-          <div className="flex items-center bg-gray-100 rounded-full p-1 shadow-inner w-full max-w-xs">
-              <button
-                onClick={() => setCategory('her')}
-                className={`flex-1 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
-                  category === 'her'
-                    ? 'bg-white text-theme-pink shadow-sm'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                For Her
-              </button>
-              <button
-                onClick={() => setCategory('him')}
-                className={`flex-1 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
-                  category === 'him'
-                    ? 'bg-white text-theme-teal shadow-sm'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                For Him
-              </button>
-            </div>
+        <div className="md:hidden flex justify-center pb-3 px-4">
+          {renderToggle(true)}
         </div>
       )}
 
-      {/* Mobile Search Overlay */}
+      {/* Mobile search overlay */}
       {!isAdminRoute && isSearchOpen && (
         <div className="md:hidden absolute top-full left-0 right-0 bg-white p-4 border-b border-gray-100 shadow-lg z-40">
-           <div className="relative">
+          <div className="relative">
             <input
               type="text"
               placeholder="Search..."
@@ -389,7 +336,7 @@ export const Header: React.FC = () => {
               className="w-full pl-10 pr-4 py-2 rounded-full border border-gray-200 focus:outline-none focus:ring-1 bg-gray-50 text-sm"
               autoFocus
             />
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
           </div>
         </div>
       )}
