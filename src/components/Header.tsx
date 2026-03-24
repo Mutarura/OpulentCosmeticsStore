@@ -60,7 +60,9 @@ const mapDbProductToStoreProduct = (row: ProductRowWithImages): Product => {
 
   const primaryImage = sortedImages[0];
   const imageUrl = primaryImage
-    ? supabase.storage.from(PRODUCT_IMAGES_BUCKET).getPublicUrl(primaryImage.storage_path).data.publicUrl
+    ? primaryImage.storage_path.startsWith('https://')
+  ? primaryImage.storage_path
+  : supabase.storage.from(PRODUCT_IMAGES_BUCKET).getPublicUrl(primaryImage.storage_path).data.publicUrl
     : getFallbackImageForProduct(row.name);
 
   const base = Number(row.price);
