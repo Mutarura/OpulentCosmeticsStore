@@ -62,7 +62,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       orderItemsData.push({
         product_id: item.id,
         quantity: item.quantity,
-        price_at_purchase: price,
+        unit_price: price,
+        total_price: price * item.quantity,
         size: item.selectedSize || null,
         color: item.selectedColor || null,
         product_name: productData.name,
