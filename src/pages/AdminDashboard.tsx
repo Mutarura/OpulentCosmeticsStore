@@ -116,6 +116,8 @@ export const AdminDashboard: React.FC = () => {
   });
 
   useEffect(() => {
+    let orderChannel: any;
+
     const loadData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { navigate('/admin/login'); return; }
@@ -128,6 +130,30 @@ export const AdminDashboard: React.FC = () => {
         navigate('/admin/login');
         return;
       }
+
+      // Request browser notification permission 
+      if ('Notification' in window && Notification.permission === 'default') { 
+        void Notification.requestPermission(); 
+      } 
+
+      // Real-time new order browser notification 
+      orderChannel = supabase 
+        .channel('admin:new-orders') 
+        .on( 
+          'postgres_changes', 
+          { event: 'INSERT', schema: 'public', table: 'orders' }, 
+          (payload) => { 
+            if (Notification.permission === 'granted') { 
+              new Notification('New Order — Opulent!', { 
+                body: `${String(payload.new.customer_name)} — KSh ${Number(payload.new.total_amount).toLocaleString()}`, 
+                icon: '/favicon.ico', 
+              }); 
+            } 
+            // Auto-switch to orders tab 
+            setActiveTab('orders'); 
+          } 
+        ) 
+        .subscribe();
 
       const { count: totalOrdersCount } = await supabase
         .from('orders').select('id', { count: 'exact', head: true });
@@ -153,6 +179,12 @@ export const AdminDashboard: React.FC = () => {
     };
 
     loadData();
+
+    return () => {
+      if (orderChannel) {
+        supabase.removeChannel(orderChannel);
+      }
+    };
   }, [navigate]);
 
   if (loading) {
@@ -811,6 +843,22 @@ const OrdersSection: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<'all' | OrderStatus>('all');
 
+  const isNewOrder = (createdAt: string) => 
+    Date.now() - new Date(createdAt).getTime() < 2 * 60 * 60 * 1000; 
+  
+  const isStuckOrder = (order: OrderRow) => 
+    order.status === 'Paid' && 
+    Date.now() - new Date(order.created_at).getTime() > 60 * 60 * 1000; 
+  
+  const getOrderAge = (createdAt: string) => { 
+    const diffMs = Date.now() - new Date(createdAt).getTime(); 
+    const diffMins = Math.floor(diffMs / 60000); 
+    if (diffMins < 60) return `${diffMins}m ago`; 
+    const diffHours = Math.floor(diffMins / 60); 
+    if (diffHours < 24) return `${diffHours}h ago`; 
+    return `${Math.floor(diffHours / 24)}d ago`; 
+  };
+
   const loadOrders = async () => {
     setLoading(true); setError(null);
     const { data, error: e } = await supabase.from('orders')
@@ -847,6 +895,22 @@ const OrdersSection: React.FC = () => {
           <button type="button" onClick={loadOrders} className="px-3 py-1.5 rounded-full border border-gray-200 text-xs text-gray-600 hover:border-accent hover:text-accent">Refresh</button>
         </div>
       </div>
+
+      {/* Live order stats */} 
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6"> 
+        {[ 
+          { label: 'Pending Payment', value: items.filter(o => o.status === 'Pending').length, color: 'text-amber-500' }, 
+          { label: 'Paid & Ready', value: items.filter(o => o.status === 'Paid').length, color: 'text-blue-500' }, 
+          { label: 'Out for Delivery', value: items.filter(o => o.status === 'Out for Delivery').length, color: 'text-purple-500' }, 
+          { label: 'Delivered Today', value: items.filter(o => o.status === 'Delivered' && isNewOrder(o.created_at)).length, color: 'text-green-500' }, 
+        ].map(stat => ( 
+          <div key={stat.label} className="bg-gray-50 rounded-xl p-3 text-center"> 
+            <p className={`text-xl font-semibold ${stat.color}`}>{stat.value}</p> 
+            <p className="text-[10px] text-gray-400 mt-0.5">{stat.label}</p> 
+          </div> 
+        ))} 
+      </div>
+
       {error && <p className="mb-3 text-xs text-red-500">{error}</p>}
       {loading ? <p className="text-xs text-gray-500">Loading orders...</p> : filteredItems.length === 0 ? <p className="text-xs text-gray-500">No orders found.</p> : (
         <table className="min-w-full text-xs">
@@ -858,7 +922,25 @@ const OrdersSection: React.FC = () => {
           <tbody>{filteredItems.map(order => (
             <tr key={order.id} className="border-b border-gray-50">
               <td className="py-2 pr-4 text-gray-600 align-top">{new Date(order.created_at).toLocaleString()}</td>
-              <td className="py-2 pr-4 align-top"><div className="font-medium text-gray-800">{order.customer_name}</div><div className="text-gray-500">{order.email}</div><div className="text-gray-500">{order.phone}</div></td>
+              <td className="py-2 pr-4 align-top">
+                <div className="flex items-center gap-1 flex-wrap"> 
+                  <span className="font-medium text-gray-800">{order.customer_name}</span> 
+                  {isNewOrder(order.created_at) && order.status === 'Paid' && ( 
+                    <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-bold bg-red-500 text-white animate-pulse">NEW</span> 
+                  )} 
+                  {isStuckOrder(order) && ( 
+                    <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-bold bg-amber-400 text-white">ACTION NEEDED</span> 
+                  )} 
+                </div> 
+                <div className="text-gray-500 text-[10px]">{order.email}</div> 
+                <div className="text-gray-500 text-[10px]">{order.phone}</div> 
+                <div className="text-gray-400 text-[10px] mt-1">{getOrderAge(order.created_at)}</div> 
+                {/* Quick action buttons */} 
+                <div className="flex gap-2 mt-1"> 
+                  <a href={`tel:${order.phone}`} className="text-[10px] text-teal-600 hover:underline">Call</a> 
+                  <a href={`https://wa.me/${order.phone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="text-[10px] text-green-600 hover:underline">WhatsApp</a> 
+                </div>
+              </td>
               <td className="py-2 pr-4 text-gray-600 align-top"><div className="capitalize font-medium">{order.delivery_type}</div>{order.delivery_address && <div className="text-[10px] text-gray-400 max-w-[150px] truncate">{order.delivery_address}</div>}</td>
               <td className="py-2 pr-4 text-gray-600 align-top text-[10px] font-mono">
                 {order.pesapal_merchant_reference && <div className="text-gray-800 font-bold mb-1">{order.pesapal_merchant_reference}</div>}

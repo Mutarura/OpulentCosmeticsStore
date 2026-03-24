@@ -243,12 +243,16 @@ export const Checkout: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Phone</label>
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="block text-xs font-medium text-gray-700">Phone</label>
+                      <span className="text-[10px] text-gray-400">WhatsApp preferred</span>
+                    </div>
                     <input
                       required
                       type="tel"
                       value={formData.phone}
                       onChange={e => setFormData({...formData, phone: e.target.value})}
+                      placeholder="e.g. 0773198364"
                       className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-1 focus:ring-accent text-sm"
                     />
                   </div>
