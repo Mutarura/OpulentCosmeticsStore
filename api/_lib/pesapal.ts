@@ -62,6 +62,19 @@ export interface SubmitOrderParams {
 
 export const submitPesapalOrder = async (params: SubmitOrderParams) => {
   const token = await getPesapalToken();
+  
+  // Pesapal V3 requires phone numbers to be in international format without the +
+  // e.g. 254773198364
+  let normalizedPhone = params.billing.phone.replace(/\D/g, '');
+  if (normalizedPhone.startsWith('0')) {
+    normalizedPhone = '254' + normalizedPhone.substring(1);
+  } else if (normalizedPhone.startsWith('+')) {
+    normalizedPhone = normalizedPhone.substring(1);
+  } else if (!normalizedPhone.startsWith('254')) {
+    // Default to Kenya if no prefix
+    normalizedPhone = '254' + normalizedPhone;
+  }
+
   const payload = {
     id: params.merchantReference,
     currency: params.currency,
@@ -70,10 +83,10 @@ export const submitPesapalOrder = async (params: SubmitOrderParams) => {
     callback_url: params.callbackUrl,
     billing_address: {
       email_address: params.billing.email,
-      phone_number: params.billing.phone,
+      phone_number: normalizedPhone,
       first_name: params.billing.firstName,
       last_name: params.billing.lastName,
-      line_1: params.billing.line1 || '',
+      line_1: params.billing.line1 || 'Nairobi, Kenya', // Fallback for empty address
       country_code: 'KE',
     },
   };

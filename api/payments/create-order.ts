@@ -181,9 +181,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         orderId: orderData.id,
       });
     } catch (e: unknown) {
-      const err = e as { response?: { data?: unknown }; message?: string };
-      console.error('Pesapal registration error:', err.response?.data || err.message);
-      throw new Error('Failed to initialize payment');
+      const err = e as { response?: { data?: any }; message?: string };
+      const pesapalError = err.response?.data;
+      console.error('Pesapal registration error:', pesapalError || err.message);
+      
+      // Provide more detail if available
+      let errorMessage = 'Failed to initialize payment';
+      if (pesapalError && typeof pesapalError === 'object') {
+        errorMessage = `Payment Error: ${JSON.stringify(pesapalError)}`;
+      } else if (err.message) {
+        errorMessage = `Payment Error: ${err.message}`;
+      }
+      
+      throw new Error(errorMessage);
     }
 
   } catch (error: unknown) {
