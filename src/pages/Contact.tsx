@@ -36,61 +36,63 @@ export const Contact: React.FC = () => {
       />
       <div className="container mx-auto px-4">
         <div className="max-w-4xl mx-auto">
+
           <div className="text-center mb-12">
             <p className="text-xs font-semibold tracking-[0.28em] uppercase text-gray-600 mb-3">
               ENQUIRIES & SUPPORT
             </p>
-            <h1 className="text-3xl md:text-4xl font-serif font-bold text-slate-900 mb-4">Contact Opulent</h1>
+            <h1 className="text-3xl md:text-4xl font-serif font-bold text-slate-900 mb-4">
+              Contact Opulent
+            </h1>
             <p className="text-gray-700 max-w-2xl mx-auto">
-              Have a question about an order, a product, or stocking Opulent? Share a few details below and we&apos;ll get back to you.
+              Have a question about an order, a product, or stocking Opulent? Share a few details below and we will get back to you.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-            {/* Contact Info */}
-            <div className="space-y-8">
-              <div className="bg-white rounded-2xl p-6 shadow-md">
-                <h3 className="text-xl font-serif font-bold text-slate-900 mb-6">Get in touch</h3>
-                <div className="space-y-6">
-                  <div className="flex items-start gap-4">
-                    <div className="p-3 rounded-full bg-rose-50 text-rose-500">
-                      <MapPin className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-gray-900">Visit Us</h4>
-                      <p className="text-gray-600">Two Rivers Mall, Nairobi</p>
-                    </div>
-                  </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 
-                  <div className="flex items-start gap-4">
-                    <div className="p-3 rounded-full bg-rose-50 text-rose-500">
-                      <Phone className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-gray-900">Call Us</h4>
-                      <p className="text-gray-600">0773 198 364</p>
-                    </div>
+            {/* Left — Contact Info */}
+            <div className="bg-white rounded-2xl p-6 shadow-md h-fit">
+              <h3 className="text-xl font-serif font-bold text-slate-900 mb-6">Get in touch</h3>
+              <div className="space-y-6">
+                <div className="flex items-start gap-4">
+                  <div className="p-3 rounded-full bg-rose-50 text-rose-500 shrink-0">
+                    <MapPin className="w-5 h-5" />
                   </div>
+                  <div>
+                    <h4 className="font-medium text-gray-900">Visit Us</h4>
+                    <p className="text-gray-600 text-sm">Two Rivers Mall, Nairobi</p>
+                  </div>
+                </div>
 
-                  <div className="flex items-start gap-4">
-                    <div className="p-3 rounded-full bg-rose-50 text-rose-500">
-                      <Mail className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-gray-900">Email Us</h4>
-                      
-                        href="mailto:opulentcosmetics2016@gmail.com"
-                        className="text-gray-600 hover:text-slate-900 transition-colors"
-                      </div>
-                        opulentcosmetics2016@gmail.com
-                      </div>
+                <div className="flex items-start gap-4">
+                  <div className="p-3 rounded-full bg-rose-50 text-rose-500 shrink-0">
+                    <Phone className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-gray-900">Call Us</h4>
+                    <p className="text-gray-600 text-sm">0773 198 364</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="p-3 rounded-full bg-rose-50 text-rose-500 shrink-0">
+                    <Mail className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-gray-900">Email Us</h4>
+                    
+                      href="mailto:opulentcosmetics2016@gmail.com"
+                      className="text-gray-600 text-sm hover:text-slate-900 transition-colors"
+                  
+                      opulentcosmetics2016@gmail.com
                     </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Enquiry Form */}
+            {/* Right — Enquiry Form */}
             <div className="bg-white rounded-2xl p-8 shadow-xl">
               <h3 className="text-xl font-serif font-bold text-slate-900 mb-2">Send an enquiry</h3>
               <p className="text-sm text-slate-600 mb-6">
@@ -104,7 +106,7 @@ export const Contact: React.FC = () => {
                   </div>
                   <h4 className="text-lg font-serif font-bold text-slate-900 mb-2">Message Sent!</h4>
                   <p className="text-sm text-gray-500 mb-6">
-                    Thank you for reaching out. We'll get back to you shortly.
+                    Thank you for reaching out. We will get back to you shortly.
                   </p>
                   <button
                     onClick={() => setStatus('idle')}
@@ -116,7 +118,9 @@ export const Contact: React.FC = () => {
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
-                    <label htmlFor="name" className="block text-sm font-medium text-gray-800 mb-1">Name</label>
+                    <label htmlFor="name" className="block text-sm font-medium text-gray-800 mb-1">
+                      Name
+                    </label>
                     <input
                       type="text"
                       id="name"
@@ -127,9 +131,11 @@ export const Contact: React.FC = () => {
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label htmlFor="email" className="block text-sm font-medium text-gray-800 mb-1">Email</label>
+                      <label htmlFor="email" className="block text-sm font-medium text-gray-800 mb-1">
+                        Email
+                      </label>
                       <input
                         type="email"
                         id="email"
@@ -141,7 +147,9 @@ export const Contact: React.FC = () => {
                     </div>
                     <div>
                       <div className="flex justify-between items-center mb-1">
-                        <label htmlFor="phone" className="block text-sm font-medium text-gray-800">Phone</label>
+                        <label htmlFor="phone" className="block text-sm font-medium text-gray-800">
+                          Phone
+                        </label>
                         <span className="text-[10px] text-gray-400">WhatsApp preferred</span>
                       </div>
                       <input
@@ -156,7 +164,9 @@ export const Contact: React.FC = () => {
                   </div>
 
                   <div>
-                    <label htmlFor="subject" className="block text-sm font-medium text-gray-800 mb-1">Subject</label>
+                    <label htmlFor="subject" className="block text-sm font-medium text-gray-800 mb-1">
+                      Subject
+                    </label>
                     <input
                       type="text"
                       id="subject"
@@ -168,7 +178,9 @@ export const Contact: React.FC = () => {
                   </div>
 
                   <div>
-                    <label htmlFor="message" className="block text-sm font-medium text-gray-800 mb-1">Message</label>
+                    <label htmlFor="message" className="block text-sm font-medium text-gray-800 mb-1">
+                      Message
+                    </label>
                     <textarea
                       id="message"
                       name="message"
@@ -196,9 +208,10 @@ export const Contact: React.FC = () => {
                 </form>
               )}
             </div>
+
           </div>
         </div>
-
-    
+      </div>
+  
   );
 };
