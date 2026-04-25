@@ -26,23 +26,28 @@ export const getPesapalToken = async (): Promise<string> => {
     return cachedToken.token;
   }
 
-  const resp = await axios.post(
-    `${BASE_URL}/api/Auth/RequestToken`,
-    {
-      consumer_key: PESAPAL_CONSUMER_KEY,
-      consumer_secret: PESAPAL_CONSUMER_SECRET,
-    },
-    { headers: { 'Content-Type': 'application/json' } }
-  );
+  try {
+    const resp = await axios.post(
+      `${BASE_URL}/api/Auth/RequestToken`,
+      {
+        consumer_key: PESAPAL_CONSUMER_KEY,
+        consumer_secret: PESAPAL_CONSUMER_SECRET,
+      },
+      { headers: { 'Content-Type': 'application/json' } }
+    );
 
-  // API returns { token: string, expiryDate: string }
-  const token: string = resp.data?.token;
-  const expiryDate: string | undefined = resp.data?.expiryDate;
-  const expiresAt =
-    expiryDate ? Math.floor(new Date(expiryDate).getTime() / 1000) : nowSeconds() + 1200;
+    // API returns { token: string, expiryDate: string }
+    const token: string = resp.data?.token;
+    const expiryDate: string | undefined = resp.data?.expiryDate;
+    const expiresAt =
+      expiryDate ? Math.floor(new Date(expiryDate).getTime() / 1000) : nowSeconds() + 1200;
 
-  cachedToken = { token, expiresAt };
-  return token;
+    cachedToken = { token, expiresAt };
+    return token;
+  } catch (error: any) {
+    console.error(`RequestToken Error [${BASE_URL}/api/Auth/RequestToken]:`, error.response?.data || error.message);
+    throw error;
+  }
 };
 
 export interface SubmitOrderParams {
@@ -51,6 +56,7 @@ export interface SubmitOrderParams {
   currency: string;
   description: string;
   callbackUrl: string;
+  notificationId: string;
   billing: {
     email: string;
     phone: string;
@@ -59,6 +65,29 @@ export interface SubmitOrderParams {
     line1?: string | null;
   };
 }
+
+export const registerPesapalIPN = async (webhookUrl: string): Promise<string> => {
+  const token = await getPesapalToken();
+  try {
+    const resp = await axios.post(
+      `${BASE_URL}/api/URLSetup/RegisterIPN`,
+      {
+        url: webhookUrl,
+        ipn_notification_type: 'GET',
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+    return resp.data?.ipn_id;
+  } catch (error: any) {
+    console.error(`RegisterIPN Error [${BASE_URL}/api/URLSetup/RegisterIPN]:`, error.response?.data || error.message);
+    throw error;
+  }
+};
 
 export const submitPesapalOrder = async (params: SubmitOrderParams) => {
   const token = await getPesapalToken();
@@ -81,6 +110,7 @@ export const submitPesapalOrder = async (params: SubmitOrderParams) => {
     amount: Number(params.amount.toFixed(2)),
     description: params.description,
     callback_url: params.callbackUrl,
+    notification_id: params.notificationId,
     billing_address: {
       email_address: params.billing.email,
       phone_number: normalizedPhone,
@@ -91,18 +121,22 @@ export const submitPesapalOrder = async (params: SubmitOrderParams) => {
     },
   };
 
-  const resp = await axios.post(
-    `${BASE_URL}/api/Transactions/SubmitOrderRequest`,
-    payload,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    }
-  );
-
-  return resp.data; // expects { redirect_url, order_tracking_id, merchant_reference }
+  try {
+    const resp = await axios.post(
+      `${BASE_URL}/api/Transactions/SubmitOrderRequest`,
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+    return resp.data; // expects { redirect_url, order_tracking_id, merchant_reference }
+  } catch (error: any) {
+    console.error(`SubmitOrderRequest Error [${BASE_URL}/api/Transactions/SubmitOrderRequest]:`, error.response?.data || error.message);
+    throw error;
+  }
 };
 
 export const getPesapalTransactionStatus = async (orderTrackingId: string) => {

@@ -22,6 +22,7 @@ type ProductRowWithImages = {
   category: 'his' | 'hers' | 'accessories';
   price: number;
   discount_price: number | null;
+  sizes?: string[] | null;
   product_images?: ProductImageRow[] | null;
 };
 
@@ -92,6 +93,7 @@ const mapDbProductToStoreProduct = (row: ProductRowWithImages): Product => {
     category: row.category === 'hers' ? 'Her' : row.category === 'accessories' ? 'Accessories' : 'Him',
     image: imageUrl,
     rating: 4.8,
+    sizes: row.sizes ?? null,
   };
 };
 
@@ -136,7 +138,7 @@ export const Home: React.FC = () => {
 
       const { data, error: queryError } = await supabase
         .from('products')
-        .select('id, name, category, price, discount_price, active, product_images(storage_path, is_primary, sort_order)')
+        .select('id, name, category, price, discount_price, sizes, active, product_images(storage_path, is_primary, sort_order)')
         .eq('active', true)
         .order('created_at', { ascending: false });
 

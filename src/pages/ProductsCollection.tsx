@@ -19,6 +19,7 @@ type ProductRowWithImages = {
   subcategory?: string | null;
   price: number;
   discount_price: number | null;
+  sizes?: string[] | null;
   product_images?: ProductImageRow[] | null;
   description?: string | null;
   is_bundle?: boolean;
@@ -96,6 +97,7 @@ const mapDbProductToStoreProduct = (row: ProductRowWithImages): Product => {
     rating: 4.8,
     subcategory: row.subcategory ?? undefined,
     is_bundle: row.is_bundle ?? false,
+    sizes: row.sizes ?? null,
   };
 };
 
@@ -180,7 +182,7 @@ export const ProductsCollection: React.FC = () => {
 
       const { data, error: queryError } = await supabase
         .from('products')
-        .select('id, name, category, subcategory, price, discount_price, active, description, is_bundle, product_images(storage_path, is_primary, sort_order)')
+        .select('id, name, category, subcategory, price, discount_price, sizes, active, description, is_bundle, product_images(storage_path, is_primary, sort_order)')
         .eq('active', true)
         .order('created_at', { ascending: false });
 

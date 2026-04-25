@@ -151,12 +151,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const baseUrl = `${proto}://${host}`;
       const callbackUrl = `${baseUrl}/success`;
 
+      // Use the pre-registered IPN ID from Pesapal dashboard 
+      // Go to Pesapal dashboard → IPN settings → copy the UUID (not the URL) 
+      const notificationId = process.env.PESAPAL_IPN_ID; 
+      if (!notificationId) throw new Error('Missing PESAPAL_IPN_ID env variable'); 
+
       const pesapalResp = await submitPesapalOrder({
         merchantReference: reference,
         amount: Number(totalAmount),
         currency: 'KES',
         description: `Opulent Cosmetics Order ${reference}`,
         callbackUrl,
+        notificationId,
         billing: {
           email: customerInfo.email,
           phone: customerInfo.phone,
@@ -181,9 +187,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         orderId: orderData.id,
       });
     } catch (e: unknown) {
-      const err = e as { response?: { data?: any }; message?: string };
+      const err = e as { response?: { data?: any }; message?: string; stack?: string };
       const pesapalError = err.response?.data;
-      console.error('Pesapal registration error:', pesapalError || err.message);
+      console.error('Pesapal registration error FULL:', JSON.stringify(err.response?.data), err.message, err.stack);
       
       // Provide more detail if available
       let errorMessage = 'Failed to initialize payment';

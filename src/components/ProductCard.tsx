@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingCart, Star, Bell, Check } from 'lucide-react';
 import type { Product } from '../data/products';
 import { useCart } from '../context/CartContext';
@@ -12,6 +12,7 @@ interface ProductCardProps {
 export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { addToCart } = useCart();
   const { category } = useCategory();
+  const navigate = useNavigate();
   const [isAdded, setIsAdded] = React.useState(false);
   
   const isOutOfStock = product.tag === 'Out of Stock';
@@ -24,7 +25,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
   const handleAddToCart = () => {
     if (isOutOfStock) return;
-    
+
+    // If product has size variants, route to product details for selection.
+    if (product.sizes && product.sizes.length > 0) {
+      navigate(`/product/${product.id}`);
+      return;
+    }
+
     addToCart(product);
     
     // Haptic feedback

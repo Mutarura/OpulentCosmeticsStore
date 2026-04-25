@@ -20,6 +20,7 @@ type ProductRowWithImages = {
   subcategory?: string | null;
   price: number;
   discount_price: number | null;
+  sizes?: string[] | null;
   product_images?: ProductImageRow[] | null;
   description?: string | null;
   is_bundle?: boolean;
@@ -94,6 +95,7 @@ const mapDbProductToStoreProduct = (row: ProductRowWithImages): Product => {
     rating: 4.8,
     subcategory: row.subcategory ?? undefined,
     is_bundle: row.is_bundle ?? false,
+    sizes: row.sizes ?? null,
   };
 };
 
@@ -110,6 +112,7 @@ export const ProductDetails: React.FC = () => {
   const [quantity, setQuantity] = useState(1);
   const [isAdded, setIsAdded] = useState(false);
   const [product, setProduct] = useState<Product | null>(null);
+  const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -123,7 +126,7 @@ export const ProductDetails: React.FC = () => {
 
       const { data, error: queryError } = await supabase
         .from('products')
-        .select('id, name, category, subcategory, price, discount_price, active, description, is_bundle, product_images(storage_path, is_primary, sort_order)')
+        .select('id, name, category, subcategory, price, discount_price, sizes, active, description, is_bundle, product_images(storage_path, is_primary, sort_order)')
         .eq('id', id)
         .eq('active', true)
         .maybeSingle();
@@ -141,10 +144,11 @@ export const ProductDetails: React.FC = () => {
       const row = data as ProductRowWithImages;
       const mappedProduct = mapDbProductToStoreProduct(row);
       setProduct(mappedProduct);
+      setSelectedSize(mappedProduct.sizes?.length === 1 ? mappedProduct.sizes[0] : null);
 
       let relatedQuery = supabase
         .from('products')
-        .select('id, name, category, subcategory, price, discount_price, active, description, product_images(storage_path, is_primary, sort_order)')
+        .select('id, name, category, subcategory, price, discount_price, sizes, active, description, product_images(storage_path, is_primary, sort_order)')
         .eq('category', row.category)
         .eq('active', true)
         .neq('id', row.id);
@@ -189,13 +193,15 @@ export const ProductDetails: React.FC = () => {
   }
 
   const config = categoryConfig[product.category as keyof typeof categoryConfig] ?? categoryConfig.Her;
+  const canAddToCart = !product.sizes?.length || selectedSize !== null;
 
   const handleDecrement = () => { if (quantity > 1) setQuantity(q => q - 1); };
   const handleIncrement = () => setQuantity(q => q + 1);
 
   const handleAddToCart = () => {
     if (!product) return;
-    addToCart(product, quantity);
+    if (product.sizes?.length && !selectedSize) return;
+    addToCart({ ...product, selectedSize }, quantity);
     if (navigator.vibrate) navigator.vibrate(50);
     setIsAdded(true);
     setTimeout(() => setIsAdded(false), 2000);
@@ -275,6 +281,28 @@ export const ProductDetails: React.FC = () => {
               {product.description || 'No description available.'}
             </p>
 
+            {product.sizes && product.sizes.length > 0 && (
+              <div className="mb-6">
+                <p className="text-sm font-medium text-accent mb-2">Select size</p>
+                <div className="flex flex-wrap gap-2">
+                  {product.sizes.map(size => (
+                    <button
+                      key={size}
+                      type="button"
+                      onClick={() => setSelectedSize(size)}
+                      className={`px-3 py-1.5 rounded-full border text-sm transition-colors ${
+                        selectedSize === size
+                          ? 'border-accent bg-accent text-white'
+                          : 'border-gray-200 text-gray-600 hover:border-accent'
+                      }`}
+                    >
+                      {size}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Quantity & Add to Cart */}
             <div className="flex flex-col sm:flex-row gap-4 mb-8">
               <div className="flex items-center border border-gray-200 rounded-full w-max">
@@ -289,12 +317,18 @@ export const ProductDetails: React.FC = () => {
 
               <button
                 onClick={handleAddToCart}
-                disabled={isAdded}
-                className={`flex-1 text-white px-8 py-3 rounded-full font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all flex items-center justify-center gap-2 ${
-                  isAdded ? 'bg-green-500 hover:bg-green-600' : 'bg-accent hover:bg-gray-800'
+                disabled={isAdded || !canAddToCart}
+                className={`flex-1 text-white px-8 py-3 rounded-full font-medium shadow-lg transition-all flex items-center justify-center gap-2 ${
+                  !canAddToCart
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : isAdded
+                      ? 'bg-green-500 hover:bg-green-600'
+                      : 'bg-accent hover:bg-gray-800 hover:shadow-xl transform hover:-translate-y-1'
                 }`}
               >
-                {isAdded ? (
+                {!canAddToCart ? (
+                  <span>Select a size first</span>
+                ) : isAdded ? (
                   <><Check className="w-5 h-5" /><span>Added to Cart</span></>
                 ) : (
                   <span>Add to Cart</span>

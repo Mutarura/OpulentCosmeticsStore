@@ -11,6 +11,8 @@ export interface Product {
   tag?: 'New' | 'Bestseller' | 'Out of Stock';
   subcategory?: string;
   is_bundle?: boolean;
+  sizes?: string[] | null;
+  selectedSize?: string | null;
 }
 
 export const products: Product[] = [

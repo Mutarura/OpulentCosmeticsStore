@@ -74,11 +74,21 @@ interface OrderRow {
   phone: string;
   status: OrderStatus;
   total_amount: number;
+  subtotal_amount: number;
+  delivery_fee: number;
+  delivery_area: string | null;
   created_at: string;
   delivery_type: 'pickup' | 'delivery';
-  delivery_address?: string;
-  pesapal_order_tracking_id?: string;
-  pesapal_merchant_reference?: string;
+  delivery_address: string | null;
+  pesapal_order_tracking_id: string | null;
+  pesapal_merchant_reference: string | null;
+  order_items?: {
+    product_name: string;
+    quantity: number;
+    unit_price: number;
+    size: string | null;
+    color: string | null;
+  }[];
 }
 
 interface CustomerSummary {
@@ -836,12 +846,160 @@ const InventorySection: React.FC = () => {
   );
 };
 
+// ─── Order detail components ──────────────────────────────────────────
+
+const AddressCell = ({ address, area }: { address: string | null; area: string | null }) => {
+  const [open, setOpen] = useState(false);
+
+  if (!address && !area) return <span className="text-gray-400 text-[10px]">Pickup</span>;
+
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="text-left text-[10px] text-blue-600 underline underline-offset-2 hover:text-blue-800 max-w-[120px] truncate block"
+        title="Click to view full address"
+      >
+        {area || address}
+      </button>
+
+      {open && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            className="bg-white rounded-xl shadow-xl p-6 max-w-sm w-full"
+            onClick={e => e.stopPropagation()}
+          >
+            <h3 className="font-semibold text-gray-800 mb-3">Delivery Address</h3>
+            <p className="text-sm text-gray-600 mb-1">
+              <span className="font-medium">Zone:</span> {area || '—'}
+            </p>
+            <p className="text-sm text-gray-600 mb-4">
+              <span className="font-medium">Address:</span> {address || '—'}
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(`${area ? area + ', ' : ''}${address || ''}`);
+                }}
+                className="text-xs bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg"
+              >
+                📋 Copy
+              </button>
+              <button
+                onClick={() => setOpen(false)}
+                className="text-xs bg-gray-800 text-white px-3 py-1.5 rounded-lg"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+};
+
+const OrderItemsModal = ({ order, onClose }: { order: OrderRow; onClose: () => void }) => (
+  <div
+    className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+    onClick={onClose}
+  >
+    <div
+      className="bg-white rounded-xl shadow-xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto"
+      onClick={e => e.stopPropagation()}
+    >
+      <div className="flex justify-between items-start mb-4">
+        <div>
+          <h3 className="font-semibold text-gray-800">Order Details</h3>
+          <p className="text-xs text-gray-500 mt-0.5">{order.pesapal_merchant_reference}</p>
+        </div>
+        <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl">
+          ✕
+        </button>
+      </div>
+
+      {/* Customer Info */}
+      <div className="bg-gray-50 rounded-lg p-3 mb-4 text-sm space-y-1">
+        <p>
+          <span className="font-medium">Customer:</span> {order.customer_name}
+        </p>
+        <p>
+          <span className="font-medium">Phone:</span>
+          <a href={`tel:${order.phone}`} className="text-blue-600 ml-1 hover:underline">
+            {order.phone}
+          </a>
+        </p>
+        <p>
+          <span className="font-medium">Email:</span> {order.email}
+        </p>
+        <p>
+          <span className="font-medium">Delivery:</span>{' '}
+          {order.delivery_type === 'pickup' ? '🏪 Pickup' : `🚚 ${order.delivery_area || ''}`}
+        </p>
+        {order.delivery_address && (
+          <div className="flex items-start gap-2">
+            <span className="font-medium shrink-0">Address:</span>
+            <div className="flex flex-col gap-1.5">
+              <p className="text-gray-600">{order.delivery_address}</p>
+              <button
+                onClick={() => navigator.clipboard.writeText(order.delivery_address!)}
+                className="text-[10px] bg-gray-200 hover:bg-gray-300 px-2 py-0.5 rounded w-fit"
+              >
+                Copy Address
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Order Items */}
+      <h4 className="font-medium text-sm text-gray-700 mb-2">Items</h4>
+      <div className="space-y-2 mb-4">
+        {order.order_items?.map((item: any, i: number) => (
+          <div key={i} className="flex justify-between items-center text-sm border-b border-gray-100 pb-2">
+            <div>
+              <p className="font-medium text-gray-800">{item.product_name}</p>
+              <p className="text-xs text-gray-500">
+                {item.size ? `Size: ${item.size}` : ''} {item.color ? `| Color: ${item.color}` : ''} |
+                Qty: {item.quantity}
+              </p>
+            </div>
+            <p className="font-medium text-gray-800">
+              KSh {(item.unit_price * item.quantity).toLocaleString()}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {/* Totals */}
+      <div className="text-sm space-y-1 border-t pt-3 border-gray-100">
+        <div className="flex justify-between text-gray-600">
+          <span>Subtotal</span>
+          <span>KSh {Number(order.subtotal_amount).toLocaleString()}</span>
+        </div>
+        <div className="flex justify-between text-gray-600">
+          <span>Delivery Fee</span>
+          <span>KSh {Number(order.delivery_fee).toLocaleString()}</span>
+        </div>
+        <div className="flex justify-between font-semibold text-gray-800 text-base mt-2 pt-2 border-t border-gray-50">
+          <span>Total</span>
+          <span>KSh {Number(order.total_amount).toLocaleString()}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
 const OrdersSection: React.FC = () => {
   const [items, setItems] = useState<OrderRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<'all' | OrderStatus>('all');
+  const [selectedOrder, setSelectedOrder] = useState<OrderRow | null>(null);
 
   const isNewOrder = (createdAt: string) => 
     Date.now() - new Date(createdAt).getTime() < 2 * 60 * 60 * 1000; 
@@ -862,7 +1020,7 @@ const OrdersSection: React.FC = () => {
   const loadOrders = async () => {
     setLoading(true); setError(null);
     const { data, error: e } = await supabase.from('orders')
-      .select('id, customer_name, email, phone, status, total_amount, created_at, delivery_type, delivery_address, pesapal_order_tracking_id, pesapal_merchant_reference')
+      .select('*, order_items(product_name, quantity, unit_price, size, color)')
       .order('created_at', { ascending: false });
     if (e) { setError(e.message); setItems([]); } else setItems((data ?? []) as OrderRow[]);
     setLoading(false);
@@ -941,24 +1099,42 @@ const OrdersSection: React.FC = () => {
                   <a href={`https://wa.me/${order.phone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="text-[10px] text-green-600 hover:underline">WhatsApp</a> 
                 </div>
               </td>
-              <td className="py-2 pr-4 text-gray-600 align-top"><div className="capitalize font-medium">{order.delivery_type}</div>{order.delivery_address && <div className="text-[10px] text-gray-400 max-w-[150px] truncate">{order.delivery_address}</div>}</td>
+              <td className="py-2 pr-4 text-gray-600 align-top">
+                <div className="capitalize font-medium mb-0.5">{order.delivery_type}</div>
+                <AddressCell address={order.delivery_address} area={order.delivery_area} />
+              </td>
               <td className="py-2 pr-4 text-gray-600 align-top text-[10px] font-mono">
                 {order.pesapal_merchant_reference && <div className="text-gray-800 font-bold mb-1">{order.pesapal_merchant_reference}</div>}
                 {order.pesapal_order_tracking_id ? <div className="text-green-600">ID: {order.pesapal_order_tracking_id}</div> : order.status === 'Paid' ? <div className="text-red-500">No Trans ID</div> : <div className="text-amber-500">Pending Payment</div>}
               </td>
               <td className="py-2 pr-4 align-top">
-                <select value={order.status} onChange={e => handleStatusChange(order.id, e.target.value as OrderStatus)}
-                  disabled={savingId === order.id || order.status === 'Delivered' || order.status === 'Cancelled'}
-                  className={`rounded-full border border-gray-200 px-2 py-1 text-[11px] focus:outline-none focus:ring-1 focus:ring-accent bg-white ${order.status === 'Delivered' || order.status === 'Cancelled' ? 'opacity-75 cursor-not-allowed bg-gray-50' : ''}`}>
-                  <option value="Pending">Pending</option><option value="Paid">Paid</option>
-                  <option value="Preparing">Preparing</option><option value="Out for Delivery">Out for Delivery</option>
-                  <option value="Delivered">Delivered</option><option value="Cancelled">Cancelled</option><option value="Failed">Failed</option>
-                </select>
+                <div className="flex flex-col gap-2">
+                  <select value={order.status} onChange={e => handleStatusChange(order.id, e.target.value as OrderStatus)}
+                    disabled={savingId === order.id || order.status === 'Delivered' || order.status === 'Cancelled'}
+                    className={`rounded-full border border-gray-200 px-2 py-1 text-[11px] focus:outline-none focus:ring-1 focus:ring-accent bg-white ${order.status === 'Delivered' || order.status === 'Cancelled' ? 'opacity-75 cursor-not-allowed bg-gray-50' : ''}`}>
+                    <option value="Pending">Pending</option><option value="Paid">Paid</option>
+                    <option value="Preparing">Preparing</option><option value="Out for Delivery">Out for Delivery</option>
+                    <option value="Delivered">Delivered</option><option value="Cancelled">Cancelled</option><option value="Failed">Failed</option>
+                  </select>
+                  <button 
+                    onClick={() => setSelectedOrder(order)} 
+                    className="text-[10px] bg-gray-800 text-white px-2 py-1 rounded hover:bg-gray-700 w-fit"
+                  >
+                    View Items
+                  </button>
+                </div>
               </td>
               <td className="py-2 pr-4 text-right text-gray-800 align-top">KSh {Number(order.total_amount).toLocaleString()}</td>
             </tr>
           ))}</tbody>
         </table>
+      )}
+
+      {selectedOrder && (
+        <OrderItemsModal 
+          order={selectedOrder} 
+          onClose={() => setSelectedOrder(null)} 
+        />
       )}
     </div>
   );
