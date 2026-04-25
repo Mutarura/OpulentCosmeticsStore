@@ -84,7 +84,7 @@ export const Contact: React.FC = () => {
                     
                       href="mailto:opulentcosmetics2016@gmail.com"
                       className="text-gray-600 text-sm hover:text-slate-900 transition-colors"
-                  
+                    
                       opulentcosmetics2016@gmail.com
                     </div>
                   </div>
@@ -212,6 +212,5 @@ export const Contact: React.FC = () => {
           </div>
         </div>
       </div>
-  
   );
 };
