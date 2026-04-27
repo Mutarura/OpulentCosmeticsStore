@@ -80,6 +80,11 @@ export const AdminLogin: React.FC = () => {
           >
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
+          <div className="text-center mt-3">
+              <a href="/admin/forgot-password" className="text-xs text-gray-400 hover:text-accent">
+                    Forgot your password?
+             </a>
+          </div>
         </form>
       </div>
     </div>

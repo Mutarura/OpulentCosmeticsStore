@@ -15,6 +15,9 @@ import { AdminLogin } from './pages/AdminLogin';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { ProductsCollection } from './pages/ProductsCollection';
 import { Success } from './pages/Success';
+import { AdminForgotPassword } from './pages/AdminForgotPassword';
+import { AdminResetPassword } from './pages/AdminResetPassword';
+
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -45,6 +48,8 @@ const App: React.FC = () => {
                   <Route path="/contact" element={<Contact />} />
                   <Route path="/admin/login" element={<AdminLogin />} />
                   <Route path="/admin" element={<AdminDashboard />} />
+                  <Route path="/admin/forgot-password" element={<AdminForgotPassword />} />
+                  <Route path="/admin/reset-password" element={<AdminResetPassword />} />
                 </Routes>
               </main>
               <Footer />
