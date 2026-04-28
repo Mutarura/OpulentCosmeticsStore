@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.90.1",
+    "@vercel/analytics": "^2.0.1",
     "@vercel/node": "^5.5.33",
     "axios": "^1.13.5",
     "cors": "^2.8.6",

@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { Analytics } from '@vercel/analytics/react';
 import { CartProvider } from './context/CartContext';
 import { SearchProvider } from './context/SearchContext';
 import { CategoryProvider } from './context/CategoryContext';
@@ -54,6 +55,7 @@ const App: React.FC = () => {
               </main>
               <Footer />
             </div>
+            <Analytics />
           </SearchProvider>
         </CartProvider>
       </CategoryProvider>
